@@ -1294,8 +1294,10 @@ void dt_masks_free_form(dt_masks_form_t *form)
 
 int dt_masks_events_mouse_leave(struct dt_iop_module_t *module)
 {
+  dt_masks_form_t *form = darktable.develop->form_visible;
+
   // reset mouse position for masks
-  if(darktable.develop->form_gui)
+  if(form && darktable.develop->form_gui)
   {
     dt_masks_form_gui_t *gui = darktable.develop->form_gui;
 
@@ -1305,6 +1307,7 @@ int dt_masks_events_mouse_leave(struct dt_iop_module_t *module)
       return 0;
 
     gui->posx = gui->posy = -1.f;
+    return 1;
   }
   return 0;
 }
