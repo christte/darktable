@@ -178,7 +178,9 @@ static void _set_hinter_message(dt_masks_form_gui_t *gui, dt_masks_type_t formty
   }
   else if(formtype & DT_MASKS_ELLIPSE)
   {
-    if(gui->point_selected >= 0)
+    if(gui->creation)
+      g_strlcat(msg, _("scroll to set size, shift+scroll to set feather size\nctrl+scroll to set shape opacity"), sizeof(msg));
+    else if(gui->point_selected >= 0)
       g_strlcat(msg, _("ctrl+click to rotate"), sizeof(msg));
     else if(gui->form_selected)
       g_strlcat(msg, _("shift+click to switch feathering mode, ctrl+scroll to set shape opacity,\nshift+scroll to set feather size"), sizeof(msg));
@@ -195,7 +197,9 @@ static void _set_hinter_message(dt_masks_form_gui_t *gui, dt_masks_type_t formty
   }
   else if(formtype & DT_MASKS_CIRCLE)
   {
-    if(gui->form_selected)
+    if(gui->creation)
+      g_strlcat(msg, _("scroll to set size, shift+scroll to set feather size\nctrl+scroll to set shape opacity"), sizeof(msg));
+    else if(gui->form_selected)
       g_strlcat(msg, _("ctrl+scroll to set shape opacity, shift+scroll to set feather size"), sizeof(msg));
   }
 
@@ -1247,6 +1251,12 @@ int dt_masks_events_mouse_leave(struct dt_iop_module_t *module)
   if(form && darktable.develop->form_gui)
   {
     dt_masks_form_gui_t *gui = darktable.develop->form_gui;
+
+    // if masks are being created or edited don't reset the position
+    if(gui->creation || gui->form_dragging || gui->source_dragging || gui->point_dragging >= 0
+       || gui->feather_dragging >= 0 || gui->seg_dragging >= 0 || gui->point_border_dragging >= 0)
+      return 0;
+
     gui->posx = gui->posy = -1.f;
     return 1;
   }
@@ -2527,9 +2537,9 @@ void dt_masks_draw_clone_source_pos(cairo_t *cr, const float zoom_scale, const f
 void dt_masks_set_source_pos_initial_state(dt_masks_form_gui_t *gui, const uint32_t state, const float pzx,
                                            const float pzy)
 {
-  if(state & GDK_CONTROL_MASK)
+  if((state & (GDK_SHIFT_MASK | GDK_CONTROL_MASK)) == (GDK_SHIFT_MASK | GDK_CONTROL_MASK))
     gui->source_pos_type = DT_MASKS_SOURCE_POS_ABSOLUTE;
-  else if(state & GDK_SHIFT_MASK)
+  else if((state & GDK_SHIFT_MASK) == GDK_SHIFT_MASK)
     gui->source_pos_type = DT_MASKS_SOURCE_POS_RELATIVE_TEMP;
   else
     fprintf(stderr, "unknown state for setting masks position type\n");
