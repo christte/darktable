@@ -26,6 +26,7 @@
 #include "common/interpolation.h"
 #include "common/module.h"
 #include "common/opencl.h"
+#include "common/usermanual_url.h"
 #include "control/control.h"
 #include "develop/blend.h"
 #include "develop/develop.h"
@@ -428,7 +429,7 @@ int dt_iop_load_module_by_so(dt_iop_module_t *module, dt_iop_module_so_t *so, dt
   module->legacy_params = so->legacy_params;
   // allow to select a shape inside an iop
   module->masks_selection_changed = so->masks_selection_changed;
-  
+
   module->connect_key_accels = so->connect_key_accels;
   module->disconnect_key_accels = so->disconnect_key_accels;
 
@@ -544,15 +545,6 @@ static void dt_iop_gui_delete_callback(GtkButton *button, dt_iop_module_t *modul
     dt_iop_gui_cleanup_module(module);
   }
 
-  // we remove all references in the history stack and dev->iop
-  dt_dev_module_remove(dev, module);
-
-  // we recreate the pipe
-  dt_dev_pixelpipe_cleanup_nodes(dev->pipe);
-  dt_dev_pixelpipe_cleanup_nodes(dev->preview_pipe);
-  dt_dev_pixelpipe_create_nodes(dev->pipe, dev);
-  dt_dev_pixelpipe_create_nodes(dev->preview_pipe, dev);
-
   // if module was priority 0, then we set next to priority 0
   if(is_zero)
   {
@@ -569,12 +561,15 @@ static void dt_iop_gui_delete_callback(GtkButton *button, dt_iop_module_t *modul
     }
   }
 
+  // we remove all references in the history stack and dev->iop
+  dt_dev_module_remove(dev, module);
+
   // we cleanup the module
   dt_accel_disconnect_list(module->accel_closures);
   dt_accel_cleanup_locals_iop(module);
   module->accel_closures = NULL;
-  dt_iop_cleanup_module(module);
-  free(module);
+  // don't delete the module, a pipe may still need it
+  dev->alliop = g_list_append(dev->alliop, module);
   module = NULL;
 
   // we update show params for multi-instances for each other instances
@@ -749,14 +744,14 @@ static void dt_iop_gui_moveup_callback(GtkButton *button, dt_iop_module_t *modul
   dt_control_queue_redraw_center();
 }
 
-static void dt_iop_gui_duplicate(dt_iop_module_t *base, gboolean copy_params)
+dt_iop_module_t *dt_iop_gui_duplicate(dt_iop_module_t *base, gboolean copy_params)
 {
   // make sure the duplicated module appears in the history
   dt_dev_add_history_item(base->dev, base, FALSE);
 
   // first we create the new module
   dt_iop_module_t *module = dt_dev_module_duplicate(base->dev, base, 0);
-  if(!module) return;
+  if(!module) return NULL;
 
   // we reflect the positions changes in the history stack too
   GList *history = g_list_first(module->dev->history);
@@ -856,6 +851,7 @@ static void dt_iop_gui_duplicate(dt_iop_module_t *base, gboolean copy_params)
     /* redraw */
     dt_control_queue_redraw_center();
   }
+  return module;
 }
 
 static void dt_iop_gui_copy_callback(GtkButton *button, gpointer user_data)
@@ -1992,6 +1988,8 @@ got_image:
     gtk_widget_set_size_request(GTK_WIDGET(hw[idx++]), bs, bs);
   }
 
+  dt_gui_add_help_link(expander, dt_get_help_url(module->op));
+
   /* add reset button */
   hw[idx] = dtgtk_button_new(dtgtk_cairo_paint_reset, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
   module->reset_button = GTK_WIDGET(hw[idx]);
@@ -2003,7 +2001,10 @@ got_image:
   /* add preset button if module has implementation */
   hw[idx] = dtgtk_button_new(dtgtk_cairo_paint_presets, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
   module->presets_button = GTK_WIDGET(hw[idx]);
-  gtk_widget_set_tooltip_text(GTK_WIDGET(hw[idx]), _("presets"));
+  if (module->flags() & IOP_FLAGS_ONE_INSTANCE)
+    gtk_widget_set_tooltip_text(GTK_WIDGET(hw[idx]), _("presets"));
+  else
+    gtk_widget_set_tooltip_text(GTK_WIDGET(hw[idx]), _("presets\nmiddle-click to apply on new instance"));
   g_signal_connect(G_OBJECT(hw[idx]), "clicked", G_CALLBACK(popup_callback), module);
   gtk_widget_set_size_request(GTK_WIDGET(hw[idx++]), bs, bs);
 
@@ -2028,6 +2029,7 @@ got_image:
   /* reorder header, for now, iop are always in the right panel */
   for(int i = 7; i >= 0; i--)
     if(hw[i]) gtk_box_pack_start(GTK_BOX(header), hw[i], i == 2 ? TRUE : FALSE, i == 2 ? TRUE : FALSE, 2);
+  dt_gui_add_help_link(header, "interacting.html");
 
   gtk_widget_set_halign(hw[2], GTK_ALIGN_END);
   dtgtk_icon_set_paint(hw[0], dtgtk_cairo_paint_solid_arrow, CPF_DIRECTION_LEFT, NULL);

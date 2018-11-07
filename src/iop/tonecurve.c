@@ -38,6 +38,7 @@
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "iop/iop_api.h"
+#include "common/iop_group.h"
 #include "libs/colorpicker.h"
 
 #define DT_GUI_CURVE_EDITOR_INSET DT_PIXEL_APPLY_DPI(1)
@@ -121,6 +122,7 @@ typedef struct dt_iop_tonecurve_gui_data_t
   GtkSizeGroup *sizegroup;
   GtkWidget *autoscale_ab;
   GtkNotebook *channel_tabs;
+  GtkWidget *colorpicker;
   tonecurve_channel_t channel;
   double mouse_x, mouse_y;
   int selected;
@@ -155,7 +157,7 @@ const char *name()
 
 int groups()
 {
-  return IOP_GROUP_TONE;
+  return dt_iop_get_group("tone curve", IOP_GROUP_TONE);
 }
 
 int flags()
@@ -629,6 +631,13 @@ void cleanup_pipe(struct dt_iop_module_t *self, dt_dev_pixelpipe_t *pipe, dt_dev
   piece->data = NULL;
 }
 
+void gui_reset(struct dt_iop_module_t *self)
+{
+  dt_iop_tonecurve_gui_data_t *g = (dt_iop_tonecurve_gui_data_t *)self->gui_data;
+  self->request_color_pick = DT_REQUEST_COLORPICK_OFF;
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->colorpicker), 0);
+}
+
 void gui_update(struct dt_iop_module_t *self)
 {
   dt_iop_tonecurve_gui_data_t *g = (dt_iop_tonecurve_gui_data_t *)self->gui_data;
@@ -639,6 +648,9 @@ void gui_update(struct dt_iop_module_t *self)
   if(p->tonecurve_autoscale_ab == 3) dt_bauhaus_combobox_set(g->autoscale_ab, s_scale_automatic_rgb);
   // that's all, gui curve is read directly from params during expose event.
   gtk_widget_queue_draw(self->widget);
+
+  if (self->request_color_pick == DT_REQUEST_COLORPICK_OFF)
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->colorpicker), 0);
 }
 
 
@@ -907,6 +919,7 @@ void gui_init(struct dt_iop_module_t *self)
   c->selected = -1;
 
   self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE);
+  dt_gui_add_help_link(self->widget, dt_get_help_url(self->op));
 
   // tabs
   c->channel_tabs = GTK_NOTEBOOK(gtk_notebook_new());
@@ -930,6 +943,7 @@ void gui_init(struct dt_iop_module_t *self)
   GtkWidget *tb = dtgtk_togglebutton_new(dtgtk_cairo_paint_colorpicker, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
   gtk_widget_set_size_request(GTK_WIDGET(tb), DT_PIXEL_APPLY_DPI(14), DT_PIXEL_APPLY_DPI(14));
   gtk_widget_set_tooltip_text(tb, _("pick GUI color from image"));
+  c->colorpicker = tb;
 
   GtkWidget *notebook = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_box_pack_start(GTK_BOX(notebook), GTK_WIDGET(c->channel_tabs), FALSE, FALSE, 0);

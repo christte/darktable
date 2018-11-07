@@ -69,6 +69,8 @@ static gboolean go_pgdown_key_accel_callback(GtkAccelGroup *accel_group, GObject
 
 static void _update_collected_images(dt_view_t *self);
 
+static gboolean _is_custom_image_order_required();
+
 /**
  * this organises the whole library:
  * previously imported film rolls..
@@ -1585,7 +1587,7 @@ static gboolean star_key_accel_callback(GtkAccelGroup *accel_group, GObject *acc
   if(mouse_over_id <= 0)
     dt_ratings_apply_to_selection(num);
   else
-    dt_ratings_apply_to_image(mouse_over_id, num);
+    dt_ratings_apply_to_image_or_group(mouse_over_id, num);
   _update_collected_images(self);
 
   dt_collection_update_query(darktable.collection); // update the counter
@@ -1882,7 +1884,7 @@ int button_pressed(dt_view_t *self, double x, double y, double pressure, int whi
   lib->select_offset_x += x;
   lib->select_offset_y += y;
 
-  if (dt_control_get_mouse_over_id() < 0)
+  if (dt_control_get_mouse_over_id() < 0 || !_is_custom_image_order_required(self))
   {
     lib->pan = 1;
   }
@@ -1922,22 +1924,7 @@ int button_pressed(dt_view_t *self, double x, double y, double pressure, int whi
       case DT_VIEW_STAR_5:
       {
         int32_t mouse_over_id = dt_control_get_mouse_over_id();
-        dt_image_t *image = dt_image_cache_get(darktable.image_cache, mouse_over_id, 'w');
-        if(image)
-        {
-          if(lib->image_over == DT_VIEW_STAR_1 && ((image->flags & 0x7) == 1))
-            image->flags &= ~0x7;
-          else if(lib->image_over == DT_VIEW_REJECT && ((image->flags & 0x7) == 6))
-            image->flags &= ~0x7;
-          else
-          {
-            image->flags &= ~0x7;
-            image->flags |= lib->image_over;
-          }
-          dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_SAFE);
-        }
-        else
-          dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_RELAXED);
+        dt_ratings_apply_to_image_or_group(mouse_over_id, lib->image_over);
         _update_collected_images(self);
         break;
       }
@@ -2501,29 +2488,49 @@ void gui_init(dt_view_t *self)
   g_signal_connect(G_OBJECT(display_profile), "value-changed", G_CALLBACK(display_profile_callback), NULL);
 }
 
+static gboolean _is_custom_image_order_required(dt_view_t *self)
+{
+  if (darktable.gui)
+  {
+    const int layout = dt_conf_get_int("plugins/lighttable/layout");
+    const int file_manager_layout = 1;
+
+    // only in file manager
+    // only in light table
+    // only if custom image order is selected
+    dt_view_t *current_view = darktable.view_manager->current_view;
+    if (layout == file_manager_layout &&
+        darktable.collection->params.sort == DT_COLLECTION_SORT_CUSTOM_ORDER &&
+        current_view &&
+        current_view->view(self) == DT_VIEW_LIGHTTABLE)
+    {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
 static void _register_custom_image_order_drag_n_drop(dt_view_t *self)
 {
   // register drag and drop for custom image ordering only
   // if "custom order" is selected and if the view "Lighttable"
   // is active
-  if (darktable.gui)
+  if (_is_custom_image_order_required(self))
   {
-    dt_view_t *current_view = darktable.view_manager->current_view;
-    if (darktable.collection->params.sort == DT_COLLECTION_SORT_CUSTOM_ORDER && current_view && current_view->view(self) == DT_VIEW_LIGHTTABLE)
+    // drag and drop for custom order of picture sequence (dnd) and drag&drop of external files/folders into darktable
+    gtk_drag_source_set(dt_ui_center(darktable.gui->ui), GDK_BUTTON1_MASK, target_list_internal, n_targets_internal, GDK_ACTION_COPY);
+
+    // check if already connected
+    const int is_connected = g_signal_handler_find(dt_ui_center(darktable.gui->ui),
+                                     G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
+                                     0, 0, NULL, G_CALLBACK(_dnd_begin_picture_reorder), (gpointer)self) != 0;
+
+    if (!is_connected)
     {
-      // drag and drop for custom order of picture sequence (dnd) and drag&drop of external files/folders into darktable
-      gtk_drag_source_set(dt_ui_center(darktable.gui->ui), GDK_BUTTON1_MASK, target_list_internal, n_targets_internal, GDK_ACTION_COPY);
-
-      // check if already connected
-      const int is_connected = g_signal_handler_find(dt_ui_center(darktable.gui->ui),
-                                       G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
-                                       0, 0, NULL, G_CALLBACK(_dnd_begin_picture_reorder), (gpointer)self) != 0;
-
-      if (!is_connected) {
-        g_signal_connect(dt_ui_center(darktable.gui->ui), "drag-begin",    G_CALLBACK(_dnd_begin_picture_reorder), (gpointer)self);
-        g_signal_connect(dt_ui_center(darktable.gui->ui), "drag-data-get", G_CALLBACK(_dnd_get_picture_reorder),   (gpointer)self);
-        g_signal_connect(dt_ui_center(darktable.gui->ui), "drag_motion",   G_CALLBACK(_dnd_drag_picture_motion),   (gpointer)self);
-      }
+      g_signal_connect(dt_ui_center(darktable.gui->ui), "drag-begin",    G_CALLBACK(_dnd_begin_picture_reorder), (gpointer)self);
+      g_signal_connect(dt_ui_center(darktable.gui->ui), "drag-data-get", G_CALLBACK(_dnd_get_picture_reorder),   (gpointer)self);
+      g_signal_connect(dt_ui_center(darktable.gui->ui), "drag_motion",   G_CALLBACK(_dnd_drag_picture_motion),   (gpointer)self);
     }
   }
 }

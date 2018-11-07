@@ -35,6 +35,7 @@ extern "C" {
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include "common/iop_group.h"
 }
 #include "iop/Permutohedral.h"
 extern "C" {
@@ -71,7 +72,7 @@ const char *name()
 
 int groups()
 {
-  return IOP_GROUP_CORRECT;
+  return dt_iop_get_group("denoise (bilateral filter)", IOP_GROUP_CORRECT);
 }
 
 int flags()
@@ -344,6 +345,7 @@ void gui_init(dt_iop_module_t *self)
   dt_iop_bilateral_params_t *p = (dt_iop_bilateral_params_t *)self->params;
 
   self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE);
+  dt_gui_add_help_link(self->widget, dt_get_help_url(self->op));
 
   g->scale1 = dt_bauhaus_slider_new_with_range(self, 1.0, 30.0, 1.0, p->sigma[0], 1);
   g->scale3 = dt_bauhaus_slider_new_with_range(self, 0.0001, .1, 0.001, p->sigma[2], 4);
