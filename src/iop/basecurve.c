@@ -192,7 +192,7 @@ static const basecurve_preset_t basecurve_camera_presets[] = {
   // nikon d7000 by Edouard Gomez
   {"Nikon D7000", "NIKON CORPORATION", "NIKON D7000", 0, FLT_MAX, {{{{0.000000, 0.000000}, {0.001943, 0.003040}, {0.019814, 0.028810}, {0.080784, 0.210476}, {0.145700, 0.383873}, {0.295961, 0.654041}, {0.651915, 0.952819}, {1.000000, 1.000000}}}, {8}, {m}}, 0, 1},
   // nikon d7200 standard by Ralf Brown (firmware 1.00)
-  {"Nikon D7200", "NIKON CORPORATION", "NIKON D7200", 0, FLT_MAX, {{{{0.000000, 0.000000}, {0.001604, 0.001334}, {0.007401, 0.005237}, {0.009474, 0.006890}, {0.017348, 0.017176}, {0.032782, 0.044336}, {0.048033, 0.086548}, {0.075803, 0.168331}, {0.109539, 0.273539}, {0.137373, 0.364645}, {0.231651, 0.597511}, {0.323797, 0.736475}, {0.383796, 0.805797}, {0.462284, 0.872247}, {0.549844, 0.918328}, {0.678855, 0.962361}, {0.817445, 0.990406}, {1.000000, 1.000000}}}, {18}, {m}}, 1, 1},
+  {"Nikon D7200", "NIKON CORPORATION", "NIKON D7200", 0, FLT_MAX, {{{{0.000000, 0.000000}, {0.001604, 0.001334}, {0.007401, 0.005237}, {0.009474, 0.006890}, {0.017348, 0.017176}, {0.032782, 0.044336}, {0.048033, 0.086548}, {0.075803, 0.168331}, {0.109539, 0.273539}, {0.137373, 0.364645}, {0.231651, 0.597511}, {0.323797, 0.736475}, {0.383796, 0.805797}, {0.462284, 0.872247}, {0.549844, 0.918328}, {0.678855, 0.962361}, {0.817445, 0.990406}, {1.000000, 1.000000}}}, {18}, {m}}, 0, 1},
   // sony rx100m2 by Günther R.
   { "Sony DSC-RX100M2", "SONY", "DSC-RX100M2", 0, FLT_MAX, { { { { 0.000000, 0.000000 }, { 0.015106, 0.008116 }, { 0.070077, 0.093725 }, { 0.107484, 0.170723 }, { 0.191528, 0.341093 }, { 0.257996, 0.458453 }, { 0.305381, 0.537267 }, { 0.326367, 0.569257 }, { 0.448067, 0.723742 }, { 0.509627, 0.777966 }, { 0.676751, 0.898797 }, { 1.000000, 1.000000 } } }, { 12 }, { m } }, 0, 1 },
   // contributed by matthias bodenbinder
@@ -305,7 +305,7 @@ int flags()
   return IOP_FLAGS_SUPPORTS_BLENDING | IOP_FLAGS_ALLOW_TILING;
 }
 
-static void set_presets(dt_iop_module_so_t *self, const basecurve_preset_t *presets, int count, int *force_autoapply)
+static void set_presets(dt_iop_module_so_t *self, const basecurve_preset_t *presets, int count, gboolean force_autoapply)
 {
   // transform presets above to db entries.
   for(int k = 0; k < count; k++)
@@ -329,7 +329,7 @@ static void set_presets(dt_iop_module_so_t *self, const basecurve_preset_t *pres
     dt_gui_presets_update_ldr(_(presets[k].name), self->op, self->version(), FOR_RAW);
     // make it auto-apply for matching images:
     dt_gui_presets_update_autoapply(_(presets[k].name), self->op, self->version(),
-                                    force_autoapply ? *force_autoapply : presets[k].autoapply);
+                                    force_autoapply ? 1 : presets[k].autoapply);
     // hide all non-matching presets in case the model string is set.
     // When force_autoapply was given always filter (as these are per-camera presets)
     dt_gui_presets_update_filter(_(presets[k].name), self->op, self->version(),
@@ -342,9 +342,9 @@ void init_presets(dt_iop_module_so_t *self)
   // sql begin
   DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), "BEGIN", NULL, NULL, NULL);
 
-  set_presets(self, basecurve_presets, basecurve_presets_cnt, NULL);
-  int force_autoapply = dt_conf_get_bool("plugins/darkroom/basecurve/auto_apply_percamera_presets");
-  set_presets(self, basecurve_camera_presets, basecurve_camera_presets_cnt, &force_autoapply);
+  set_presets(self, basecurve_presets, basecurve_presets_cnt, FALSE);
+  const gboolean force_autoapply = dt_conf_get_bool("plugins/darkroom/basecurve/auto_apply_percamera_presets");
+  set_presets(self, basecurve_camera_presets, basecurve_camera_presets_cnt, force_autoapply);
 
   // sql commit
   DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), "COMMIT", NULL, NULL, NULL);
