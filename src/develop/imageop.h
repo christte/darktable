@@ -44,6 +44,7 @@ struct dt_dev_pixelpipe_t;
 struct dt_dev_pixelpipe_iop_t;
 struct dt_develop_blend_params_t;
 struct dt_develop_tiling_t;
+struct dt_iop_color_picker_t;
 
 /** module group */
 typedef enum dt_iop_group_t
@@ -116,6 +117,17 @@ typedef enum dt_dev_request_colorpick_flags_t
   DT_REQUEST_COLORPICK_BLEND = 1 << 1   // requested by parametric blending gui
 } dt_dev_request_colorpick_flags_t;
 
+/** colorspace enums */
+typedef enum dt_iop_colorspace_type_t
+{
+  iop_cs_NONE = -1,
+  iop_cs_RAW = 0,
+  iop_cs_Lab = 1,
+  iop_cs_rgb = 2,
+  iop_cs_LCh = 3,
+  iop_cs_HSL = 4
+} dt_iop_colorspace_type_t;
+
 /** part of the module which only contains the cached dlopen stuff. */
 struct dt_iop_module_so_t;
 struct dt_iop_module_t;
@@ -149,7 +161,7 @@ typedef struct dt_iop_module_so_t
   /** callbacks, loaded once, referenced by the instances. */
   int (*version)();
   const char *(*name)();
-  int (*groups)();
+  int (*default_group)();
   int (*flags)();
 
   const char *(*description)();
@@ -232,6 +244,8 @@ typedef struct dt_iop_module_so_t
                            size_t points_count);
   int (*distort_backtransform)(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *piece,
                                float *points, size_t points_count);
+  void (*distort_mask)(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *piece, const float *const in,
+                       float *const out, const dt_iop_roi_t *const roi_in, const dt_iop_roi_t *const roi_out);
 
   // introspection related callbacks
   gboolean have_introspection;
@@ -267,6 +281,9 @@ typedef struct dt_iop_module_t
   /** set to 1 if you want the blendif to be completely suppressed in the module in focus. only when the module has
    * the focus. */
   int32_t bypass_blendif;
+  /** color picker proxys */
+  struct dt_iop_color_picker_t *picker;
+  struct dt_iop_color_picker_t *blend_picker;
   /** bounding box in which the mean color is requested. */
   float color_picker_box[4];
   /** single point to pick if in point mode */
@@ -281,6 +298,11 @@ typedef struct dt_iop_module_t
   dt_dev_histogram_stats_t histogram_stats;
   /** maximum levels in histogram, one per channel */
   uint32_t histogram_max[4];
+  /** requested colorspace for the histogram, valid options are:
+   * iop_cs_NONE: module colorspace
+   * iop_cs_LCh: for Lab modules
+   */
+  dt_iop_colorspace_type_t histogram_cst;
   /** reference for dlopened libs. */
   darktable_t *dt;
   /** the module is used in this develop module. */
@@ -299,11 +321,26 @@ typedef struct dt_iop_module_t
   struct dt_develop_blend_params_t *blend_params, *default_blendop_params;
   /** holder for blending ui control */
   gpointer blend_data;
+  struct {
+    struct {
+      /** if this module generates a mask, is it used later on? needed to decide if the mask should be stored.
+          maps dt_iop_module_t* -> id
+      */
+      GHashTable *users;
+      /** the masks this module has to offer. maps id -> name */
+      GHashTable *masks;
+    } source;
+    struct {
+      /** the module that provides the raster mask (if any). keep in sync with blend_params! */
+      struct dt_iop_module_t *source;
+      int id;
+    } sink;
+  } raster_mask;
   /** child widget which is added to the GtkExpander. copied from module_so_t. */
   GtkWidget *widget;
   /** off button, somewhere in header, common to all plug-ins. */
   GtkDarktableToggleButton *off;
-  /** this is the module header, contains labe and buttons */
+  /** this is the module header, contains label and buttons */
   GtkWidget *header;
 
   /** expander containing the widget and flag to store expanded state */
@@ -335,8 +372,8 @@ typedef struct dt_iop_module_t
   int (*version)();
   /** get name of the module, to be translated. */
   const char *(*name)();
-  /** get the groups this module belongs to. */
-  int (*groups)();
+  /** get the default group this module belongs to. */
+  int (*default_group)();
   /** get the iop module flags. */
   int (*flags)();
 
@@ -445,6 +482,9 @@ typedef struct dt_iop_module_t
   /** reverse points after the iop is applied => point before process */
   int (*distort_backtransform)(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *piece,
                                float *points, size_t points_count);
+  /** apply the image distortion to a single channel float buffer. only needed by iops that distort the image */
+  void (*distort_mask)(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *piece, const float *const in,
+                       float *const out, const dt_iop_roi_t *const roi_in, const dt_iop_roi_t *const roi_out);
 
   /** Key accelerator registration callbacks */
   void (*connect_key_accels)(struct dt_iop_module_t *self);
@@ -503,6 +543,9 @@ void dt_iop_gui_update_header(dt_iop_module_t *module);
 void dt_iop_commit_params(dt_iop_module_t *module, dt_iop_params_t *params,
                           struct dt_develop_blend_params_t *blendop_params, struct dt_dev_pixelpipe_t *pipe,
                           struct dt_dev_pixelpipe_iop_t *piece);
+void dt_iop_commit_blend_params(dt_iop_module_t *module, const struct dt_develop_blend_params_t *blendop_params);
+/** make sure the raster mask is advertised if available */
+void dt_iop_set_mask_mode(dt_iop_module_t *module, int mask_mode);
 /** creates a label widget for the expander, with callback to enable/disable this module. */
 GtkWidget *dt_iop_gui_get_expander(dt_iop_module_t *module);
 /** get the widget of plugin ui in expander */
@@ -529,14 +572,6 @@ int dt_iop_breakpoint(struct dt_develop_t *dev, struct dt_dev_pixelpipe_t *pipe)
 /** allow plugins to relinquish CPU and go to sleep for some time */
 void dt_iop_nap(int32_t usec);
 
-/** colorspace enums */
-typedef enum dt_iop_colorspace_type_t
-{
-  iop_cs_RAW,
-  iop_cs_Lab,
-  iop_cs_rgb
-} dt_iop_colorspace_type_t;
-
 /** find which colorspace the module works within */
 dt_iop_colorspace_type_t dt_iop_module_colorspace(const dt_iop_module_t *module);
 
@@ -547,6 +582,12 @@ gchar *dt_iop_get_localized_name(const gchar *op);
 
 /** Connects common accelerators to an iop module */
 void dt_iop_connect_common_accels(dt_iop_module_t *module);
+
+/** set multi_priority and update raster mask links */
+void dt_iop_update_multi_priority(dt_iop_module_t *module, int new_priority);
+
+/** iterates over the users hash table and checks if a specific mask is being used */
+gboolean dt_iop_is_raster_mask_used(dt_iop_module_t *module, int id);
 
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.sh
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

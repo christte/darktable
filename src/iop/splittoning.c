@@ -31,8 +31,8 @@
 #include "gui/accelerators.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
+#include "gui/color_picker_proxy.h"
 #include "iop/iop_api.h"
-#include "common/iop_group.h"
 #include <assert.h>
 #include <gtk/gtk.h>
 #include <inttypes.h>
@@ -59,6 +59,7 @@ typedef struct dt_iop_splittoning_gui_data_t
   GtkWidget *colorpick1, *colorpick2; // shadow,  highlight
   GtkWidget *gslider1, *gslider2, *gslider3,
       *gslider4; // highlight hue, highlight saturation, shadow hue, shadow saturation
+  dt_iop_color_picker_t color_picker;
 } dt_iop_splittoning_gui_data_t;
 
 typedef struct dt_iop_splittoning_data_t
@@ -76,6 +77,13 @@ typedef struct dt_iop_splittoning_global_data_t
   int kernel_splittoning;
 } dt_iop_splittoning_global_data_t;
 
+typedef enum dt_iop_splittoning_picker_t
+{
+  DT_SPLITTONING_NONE = 0,
+  DT_SPLITTONING_HIGHLIGHTS,
+  DT_SPLITTONING_SHADOWS
+} dt_iop_splittoning_picker_data_t;
+
 
 const char *name()
 {
@@ -87,9 +95,9 @@ int flags()
   return IOP_FLAGS_INCLUDE_IN_STYLES | IOP_FLAGS_SUPPORTS_BLENDING | IOP_FLAGS_ALLOW_TILING;
 }
 
-int groups()
+int default_group()
 {
-  return dt_iop_get_group("split toning", IOP_GROUP_EFFECT);
+  return IOP_GROUP_EFFECT;
 }
 
 void init_key_accels(dt_iop_module_so_t *self)
@@ -270,6 +278,7 @@ static void balance_callback(GtkWidget *slider, gpointer user_data)
   if(self->dt->gui->reset) return;
   dt_iop_splittoning_params_t *p = (dt_iop_splittoning_params_t *)self->params;
   p->balance = dt_bauhaus_slider_get(slider) / 100.0f;
+  dt_iop_color_picker_reset(self, TRUE);
   dt_dev_add_history_item(darktable.develop, self, TRUE);
 }
 
@@ -279,6 +288,7 @@ static void compress_callback(GtkWidget *slider, gpointer user_data)
   if(self->dt->gui->reset) return;
   dt_iop_splittoning_params_t *p = (dt_iop_splittoning_params_t *)self->params;
   p->compress = dt_bauhaus_slider_get(slider);
+  dt_iop_color_picker_reset(self, TRUE);
   dt_dev_add_history_item(darktable.develop, self, TRUE);
 }
 
@@ -319,6 +329,8 @@ static void hue_callback(GtkWidget *slider, gpointer user_data)
   dt_iop_splittoning_params_t *p = (dt_iop_splittoning_params_t *)self->params;
   dt_iop_splittoning_gui_data_t *g = (dt_iop_splittoning_gui_data_t *)self->gui_data;
 
+  dt_iop_color_picker_reset(self, TRUE);
+
   double hue = 0;
   double saturation = 0;
   GtkWidget *colorpicker;
@@ -356,6 +368,8 @@ static void saturation_callback(GtkWidget *slider, gpointer user_data)
   dt_iop_module_t *self = (dt_iop_module_t *)user_data;
   dt_iop_splittoning_params_t *p = (dt_iop_splittoning_params_t *)self->params;
   dt_iop_splittoning_gui_data_t *g = (dt_iop_splittoning_gui_data_t *)self->gui_data;
+
+  dt_iop_color_picker_reset(self, TRUE);
 
   double hue = 0;
   double saturation = 0;
@@ -401,7 +415,79 @@ static void colorpick_callback(GtkColorButton *widget, dt_iop_module_t *self)
   dt_dev_add_history_item(darktable.develop, self, TRUE);
 }
 
+static int _iop_color_picker_get_set(dt_iop_module_t *self, GtkWidget *button)
+{
+  dt_iop_splittoning_gui_data_t *g =  (dt_iop_splittoning_gui_data_t *)self->gui_data;
 
+  const int current_picker = g->color_picker.current_picker;
+
+  g->color_picker.current_picker = DT_SPLITTONING_NONE;
+
+  if(button == g->gslider1)
+    g->color_picker.current_picker = DT_SPLITTONING_HIGHLIGHTS;
+  else if(button == g->gslider3)
+    g->color_picker.current_picker = DT_SPLITTONING_SHADOWS;
+
+  if (current_picker == g->color_picker.current_picker)
+    return DT_COLOR_PICKER_ALREADY_SELECTED;
+  else
+    return g->color_picker.current_picker;
+}
+
+static void _iop_color_picker_apply(struct dt_iop_module_t *self)
+{
+  dt_iop_splittoning_gui_data_t *g = (dt_iop_splittoning_gui_data_t *)self->gui_data;
+  dt_iop_splittoning_params_t *p = (dt_iop_splittoning_params_t *)self->params;
+
+  float *p_hue, *p_saturation;
+  GtkWidget *sat, *hue, *colorpicker;
+
+  // convert picker RGB 2 HSL
+  float H = .0f, S = .0f, L = .0f;
+  rgb2hsl(self->picked_color, &H, &S, &L);
+
+  if(g->color_picker.current_picker == DT_SPLITTONING_HIGHLIGHTS)
+  {
+    p_hue = &p->highlight_hue;
+    p_saturation = &p->highlight_saturation;
+    hue = g->gslider1;
+    sat = g->gslider2;
+    colorpicker = g->colorpick1;
+  }
+  else
+  {
+    p_hue = &p->shadow_hue;
+    p_saturation = &p->shadow_saturation;
+    hue = g->gslider3;
+    sat = g->gslider4;
+    colorpicker = g->colorpick2;
+  }
+
+  if(fabsf(*p_hue - H) < 0.0001f && fabsf(*p_saturation - S) < 0.0001f)
+  {
+    // interrupt infinite loops
+    return;
+  }
+
+  *p_hue        = H;
+  *p_saturation = S;
+
+  darktable.gui->reset = 1;
+  dt_bauhaus_slider_set(hue, H);
+  dt_bauhaus_slider_set(sat, S);
+  update_colorpicker_color(colorpicker, H, S);
+  update_saturation_slider_end_color(sat, H);
+  darktable.gui->reset = 0;
+
+  dt_dev_add_history_item(darktable.develop, self, TRUE);
+}
+
+static void _iop_color_picker_update(dt_iop_module_t *self)
+{
+  dt_iop_splittoning_gui_data_t *g =  (dt_iop_splittoning_gui_data_t *)self->gui_data;
+  dt_bauhaus_widget_set_quad_active(g->gslider1, g->color_picker.current_picker == DT_SPLITTONING_HIGHLIGHTS);
+  dt_bauhaus_widget_set_quad_active(g->gslider3, g->color_picker.current_picker == DT_SPLITTONING_SHADOWS);
+}
 
 void commit_params(struct dt_iop_module_t *self, dt_iop_params_t *p1, dt_dev_pixelpipe_t *pipe,
                    dt_dev_pixelpipe_iop_t *piece)
@@ -472,6 +558,8 @@ void cleanup(dt_iop_module_t *module)
 static inline int gui_init_tab(struct dt_iop_module_t *self, int line, const char *name, GtkWidget **ppcolor,
                                 const GdkRGBA *c, GtkWidget **pphue, GtkWidget **ppsaturation)
 {
+  dt_iop_splittoning_gui_data_t *g = (dt_iop_splittoning_gui_data_t *)self->gui_data;
+
   GtkGrid *grid = GTK_GRID(self->widget);
   gtk_grid_attach(grid, dt_ui_section_label_new(name), 0, line++, 2, 1);
 
@@ -494,6 +582,9 @@ static inline int gui_init_tab(struct dt_iop_module_t *self, int line, const cha
   dt_bauhaus_slider_set_stop(hue, 0.830f, 1.0f, 0.0f, 1.0f);
   dt_bauhaus_slider_set_stop(hue, 1.0f, 1.0f, 0.0f, 0.0f);
   gtk_widget_set_tooltip_text(hue, _("select the hue tone"));
+  dt_bauhaus_widget_set_quad_paint(hue, dtgtk_cairo_paint_colorpicker, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
+  dt_bauhaus_widget_set_quad_toggle(hue, TRUE);
+  g_signal_connect(G_OBJECT(hue), "quad-pressed", G_CALLBACK(dt_iop_color_picker_callback), &g->color_picker);
 
   // saturation slider
   GtkWidget *saturation;
@@ -569,6 +660,13 @@ void gui_init(struct dt_iop_module_t *self)
 
   g_signal_connect(G_OBJECT(g->colorpick1), "color-set", G_CALLBACK(colorpick_callback), self);
   g_signal_connect(G_OBJECT(g->colorpick2), "color-set", G_CALLBACK(colorpick_callback), self);
+
+  dt_iop_init_picker(&g->color_picker,
+              self,
+              DT_COLOR_PICKER_POINT,
+              _iop_color_picker_get_set,
+              _iop_color_picker_apply,
+              _iop_color_picker_update);
 }
 
 void gui_cleanup(struct dt_iop_module_t *self)

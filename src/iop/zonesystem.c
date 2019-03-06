@@ -37,7 +37,6 @@
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "iop/iop_api.h"
-#include "common/iop_group.h"
 
 #if defined(__SSE__)
 #include <xmmintrin.h>
@@ -124,9 +123,9 @@ int flags()
          | IOP_FLAGS_PREVIEW_NON_OPENCL;
 }
 
-int groups()
+int default_group()
 {
-  return dt_iop_get_group("zone system", IOP_GROUP_TONE);
+  return IOP_GROUP_TONE;
 }
 
 /* get the zone index of pixel lightness from zonemap */
@@ -582,7 +581,6 @@ void gui_cleanup(struct dt_iop_module_t *self)
   if(g->image) cairo_surface_destroy(g->image);
   free(g->image_buffer);
   dt_pthread_mutex_destroy(&g->lock);
-  self->request_color_pick = DT_REQUEST_COLORPICK_OFF;
   free(self->gui_data);
   self->gui_data = NULL;
 }

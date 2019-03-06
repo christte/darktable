@@ -492,17 +492,13 @@ int try_enter(dt_view_t *self)
 
 static void select_this_image(const int imgid)
 {
-  // select this image, if no multiple selection:
-  if(dt_collection_get_selected_count(NULL) < 2)
-  {
-    sqlite3_stmt *stmt;
-    DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), "DELETE FROM main.selected_images", NULL, NULL, NULL);
-    DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                "INSERT OR IGNORE INTO main.selected_images VALUES (?1)", -1, &stmt, NULL);
-    DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-  }
+  sqlite3_stmt *stmt;
+  DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), "DELETE FROM main.selected_images", NULL, NULL, NULL);
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
+                              "INSERT OR IGNORE INTO main.selected_images VALUES (?1)", -1, &stmt, NULL);
+  DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
+  sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
 }
 
 static void dt_dev_cleanup_module_accels(dt_iop_module_t *module)
@@ -962,7 +958,6 @@ static void _darkroom_ui_apply_style_popupmenu(GtkWidget *w, gpointer user_data)
     do
     {
       dt_style_t *style = (dt_style_t *)styles->data;
-      GtkWidget *mi = gtk_menu_item_new_with_label(style->name);
 
       char *items_string = dt_styles_get_item_list_as_string(style->name);
       gchar *tooltip = NULL;
@@ -976,9 +971,61 @@ static void _darkroom_ui_apply_style_popupmenu(GtkWidget *w, gpointer user_data)
         tooltip = g_strdup(items_string);
       }
 
-      gtk_widget_set_tooltip_markup(mi, tooltip);
+      gchar **split = g_strsplit(style->name, "|", 0);
 
-      gtk_menu_shell_append(menu, mi);
+      // if sub-menu, do not put leading group in final name
+
+      gchar *mi_name = NULL;
+
+      if(split[1])
+      {
+        mi_name = g_strdup(split[1]);
+        for(int i = 2; split[i]; i++) mi_name = g_strconcat(mi_name, " | ", split[i], NULL);
+      }
+      else
+        mi_name = g_strdup(split[0]);
+
+      GtkWidget *mi = gtk_menu_item_new_with_label(mi_name);
+      gtk_widget_set_tooltip_markup(mi, tooltip);
+      g_free(mi_name);
+
+      // check if we already have a sub-menu with this name
+      GtkMenu *sm = NULL;
+
+      GList *childs = gtk_container_get_children(GTK_CONTAINER(menu));
+      while(childs)
+      {
+        GtkMenuItem *smi = (GtkMenuItem *)childs->data;
+        if(!g_strcmp0(split[0], gtk_menu_item_get_label(smi)))
+        {
+          sm = (GtkMenu *)gtk_menu_item_get_submenu(smi);
+          g_list_free(childs);
+          break;
+        }
+        childs = g_list_next(childs);
+      }
+
+      GtkMenuItem *smi = NULL;
+
+      // no sub-menu, but we need one
+      if(!sm && split[1])
+      {
+        smi = (GtkMenuItem *)gtk_menu_item_new_with_label(split[0]);
+        sm = (GtkMenu *)gtk_menu_new();
+        gtk_menu_item_set_submenu(smi, GTK_WIDGET(sm));
+      }
+
+      if(sm)
+        gtk_menu_shell_append(GTK_MENU_SHELL(sm), mi);
+      else
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), mi);
+
+      if(smi)
+      {
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), GTK_WIDGET(smi));
+        gtk_widget_show(GTK_WIDGET(smi));
+      }
+
       g_signal_connect_swapped(G_OBJECT(mi), "activate",
                                G_CALLBACK(_darkroom_ui_apply_style_activate_callback),
                                (gpointer)g_strdup(style->name));
@@ -986,6 +1033,7 @@ static void _darkroom_ui_apply_style_popupmenu(GtkWidget *w, gpointer user_data)
 
       g_free(items_string);
       g_free(tooltip);
+      g_strfreev(split);
     } while((styles = g_list_next(styles)) != NULL);
     g_list_free_full(styles, dt_style_free);
   }
@@ -1343,6 +1391,40 @@ end:
   }
 }
 
+static void histogram_profile_callback(GtkWidget *combo, gpointer user_data)
+{
+  dt_develop_t *d = (dt_develop_t *)user_data;
+  gboolean profile_changed = FALSE;
+  const int pos = dt_bauhaus_combobox_get(combo);
+  for(GList *profiles = darktable.color_profiles->profiles; profiles; profiles = g_list_next(profiles))
+  {
+    dt_colorspaces_color_profile_t *pp = (dt_colorspaces_color_profile_t *)profiles->data;
+    if(pp->category_pos == pos)
+    {
+      if(darktable.color_profiles->histogram_type != pp->type
+         || (darktable.color_profiles->histogram_type == DT_COLORSPACE_FILE
+             && strcmp(darktable.color_profiles->histogram_filename, pp->filename)))
+      {
+        darktable.color_profiles->histogram_type = pp->type;
+        g_strlcpy(darktable.color_profiles->histogram_filename, pp->filename,
+                  sizeof(darktable.color_profiles->histogram_filename));
+        profile_changed = TRUE;
+      }
+      goto end;
+    }
+  }
+
+  // profile not found, fall back to export profile. shouldn't happen
+  fprintf(stderr, "can't find histogram profile `%s', using export profile instead\n",
+          dt_bauhaus_combobox_get_text(combo));
+  profile_changed = darktable.color_profiles->histogram_type != DT_COLORSPACE_EXPORT;
+  darktable.color_profiles->histogram_type = DT_COLORSPACE_EXPORT;
+  darktable.color_profiles->histogram_filename[0] = '\0';
+
+end:
+  if(profile_changed) dt_dev_reprocess_all(d);
+}
+
 // FIXME: turning off lcms2 in prefs hides the widget but leaves the window sized like before -> ugly-ish
 static void _preference_changed(gpointer instance, gpointer user_data)
 {
@@ -1575,7 +1657,7 @@ void gui_init(dt_view_t *self)
   {
     // the softproof button
     dev->profile.softproof_button
-    = dtgtk_togglebutton_new(dtgtk_cairo_paint_softproof, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
+        = dtgtk_togglebutton_new(dtgtk_cairo_paint_softproof, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
     gtk_widget_set_tooltip_text(dev->profile.softproof_button,
                                 _("toggle softproofing\nright click for profile options"));
     g_signal_connect(G_OBJECT(dev->profile.softproof_button), "clicked",
@@ -1589,7 +1671,7 @@ void gui_init(dt_view_t *self)
 
     // the gamut check button
     dev->profile.gamut_button
-    = dtgtk_togglebutton_new(dtgtk_cairo_paint_gamut_check, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
+        = dtgtk_togglebutton_new(dtgtk_cairo_paint_gamut_check, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
     gtk_widget_set_tooltip_text(dev->profile.gamut_button,
                  _("toggle gamut checking\nright click for profile options"));
     g_signal_connect(G_OBJECT(dev->profile.gamut_button), "clicked",
@@ -1639,10 +1721,13 @@ void gui_init(dt_view_t *self)
 
     GtkWidget *display_profile = dt_bauhaus_combobox_new(NULL);
     GtkWidget *softproof_profile = dt_bauhaus_combobox_new(NULL);
+    GtkWidget *histogram_profile = dt_bauhaus_combobox_new(NULL);
     dt_bauhaus_widget_set_label(softproof_profile, NULL, _("softproof profile"));
     dt_bauhaus_widget_set_label(display_profile, NULL, _("display profile"));
+    dt_bauhaus_widget_set_label(histogram_profile, NULL, _("histogram profile"));
     gtk_box_pack_start(GTK_BOX(vbox), softproof_profile, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(vbox), display_profile, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), histogram_profile, TRUE, TRUE, 0);
 
     GList *l = darktable.color_profiles->profiles;
     while(l)
@@ -1667,6 +1752,16 @@ void gui_init(dt_view_t *self)
               || !strcmp(prof->filename, darktable.color_profiles->softproof_filename)))
           dt_bauhaus_combobox_set(softproof_profile, prof->out_pos);
       }
+      if(prof->category_pos > -1)
+      {
+        dt_bauhaus_combobox_add(histogram_profile, prof->name);
+        if(prof->type == darktable.color_profiles->histogram_type
+           && (prof->type != DT_COLORSPACE_FILE
+               || !strcmp(prof->filename, darktable.color_profiles->histogram_filename)))
+        {
+          dt_bauhaus_combobox_set(histogram_profile, prof->category_pos);
+        }
+      }
       l = g_list_next(l);
     }
 
@@ -1678,12 +1773,17 @@ void gui_init(dt_view_t *self)
     tooltip = g_strdup_printf(_("softproof ICC profiles in %s or %s"), user_profile_dir, system_profile_dir);
     gtk_widget_set_tooltip_text(softproof_profile, tooltip);
     g_free(tooltip);
+    tooltip = g_strdup_printf(_("histogram and color picker ICC profiles in %s or %s"), user_profile_dir,
+                              system_profile_dir);
+    gtk_widget_set_tooltip_text(histogram_profile, tooltip);
+    g_free(tooltip);
     g_free(system_profile_dir);
     g_free(user_profile_dir);
 
     g_signal_connect(G_OBJECT(display_intent), "value-changed", G_CALLBACK(display_intent_callback), dev);
     g_signal_connect(G_OBJECT(display_profile), "value-changed", G_CALLBACK(display_profile_callback), dev);
     g_signal_connect(G_OBJECT(softproof_profile), "value-changed", G_CALLBACK(softproof_profile_callback), dev);
+    g_signal_connect(G_OBJECT(histogram_profile), "value-changed", G_CALLBACK(histogram_profile_callback), dev);
 
     _update_softproof_gamut_checking(dev);
 
@@ -1925,6 +2025,8 @@ void leave(dt_view_t *self)
 
   dt_ui_scrollbars_show(darktable.gui->ui, FALSE);
 
+  darktable.develop->image_storage.id = -1;
+
   dt_print(DT_DEBUG_CONTROL, "[run_job-] 11 %f in darkroom mode\n", dt_get_wtime());
 }
 
@@ -1943,6 +2045,13 @@ void mouse_leave(dt_view_t *self)
 
   // reset any changes the selected plugin might have made.
   dt_control_change_cursor(GDK_LEFT_PTR);
+}
+
+void mouse_enter(dt_view_t *self)
+{
+  dt_develop_t *dev = (dt_develop_t *)self->data;
+  // masks
+  dt_masks_events_mouse_enter(dev->gui_module);
 }
 
 void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which)
@@ -1990,8 +2099,6 @@ void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which
       dev->gui_module->color_picker_point[1] = .5f + zoom_y;
     }
 
-    dev->preview_pipe->changed |= DT_DEV_PIPE_SYNCH;
-    dt_dev_invalidate_all(dev);
     dt_control_queue_redraw();
     return;
   }
@@ -2039,6 +2146,13 @@ int button_released(dt_view_t *self, double x, double y, int which, uint32_t sta
   if(height_i > capht) y += (capht - height_i) * .5f;
 
   int handled = 0;
+  if(dev->gui_module && dev->gui_module->request_color_pick != DT_REQUEST_COLORPICK_OFF && which == 1)
+  {
+    dev->preview_pipe->changed |= DT_DEV_PIPE_SYNCH;
+    dt_dev_invalidate_all(dev);
+    dt_control_queue_redraw();
+    return 1;
+  }
   // masks
   if(dev->form_visible) handled = dt_masks_events_button_released(dev->gui_module, x, y, which, state);
   if(handled) return handled;
@@ -2245,14 +2359,16 @@ void scrolled(dt_view_t *self, double x, double y, int up, int state)
     closeup = 1;  // enable closeup mode (pixel doubling)
   }
 
-  dt_control_set_dev_zoom_scale(scale);
   if(fabsf(scale - 1.0f) < 0.001f) zoom = DT_ZOOM_1;
   if(fabsf(scale - fitscale) < 0.001f) zoom = DT_ZOOM_FIT;
+  dt_control_set_dev_zoom_scale(scale);
+  dt_control_set_dev_closeup(closeup);
+  scale = dt_dev_get_zoom_scale(dev, zoom, 1 << closeup, 0);
+
   zoom_x -= mouse_off_x / (procw * scale);
   zoom_y -= mouse_off_y / (proch * scale);
   dt_dev_check_zoom_bounds(dev, &zoom_x, &zoom_y, zoom, closeup, NULL, NULL);
   dt_control_set_dev_zoom(zoom);
-  dt_control_set_dev_closeup(closeup);
   dt_control_set_dev_zoom_x(zoom_x);
   dt_control_set_dev_zoom_y(zoom_y);
 

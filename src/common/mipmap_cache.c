@@ -45,7 +45,7 @@
 
 #if !defined(_WIN32)
 #include <sys/statvfs.h>
-#else 
+#else
 //statvfs does not exist in Windows, providing implementation
 #include "win/statvfs.h"
 #endif
@@ -325,7 +325,7 @@ void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
       entry->data_size = sizeof(*dsc) + sizeof(float) * 4 * 64;
     }
 
-    entry->data = dt_alloc_align(16, entry->data_size);
+    entry->data = dt_alloc_align(64, entry->data_size);
 
     // fprintf(stderr, "[mipmap cache] alloc dynamic for key %u %p\n", key, *buf);
     if(!(entry->data))
@@ -1108,7 +1108,7 @@ static int _bpp(dt_imageio_module_data_t *data)
 
 static int _write_image(dt_imageio_module_data_t *data, const char *filename, const void *in,
                         dt_colorspaces_color_profile_type_t over_type, const char *over_filename,
-                        void *exif, int exif_len, int imgid, int num, int total)
+                        void *exif, int exif_len, int imgid, int num, int total, dt_dev_pixelpipe_t *pipe)
 {
   _dummy_data_t *d = (_dummy_data_t *)data;
   memcpy(d->buf, in, data->width * data->height * sizeof(uint32_t));
@@ -1218,8 +1218,9 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
     dat.buf = buf;
     // export with flags: ignore exif (don't load from disk), don't swap byte order, don't do hq processing,
     // no upscaling and signal we want thumbnail export
-    res = dt_imageio_export_with_flags(imgid, "unused", &format, (dt_imageio_module_data_t *)&dat, 1, 0, 0, 0, 1,
-                                       NULL, FALSE, DT_COLORSPACE_NONE, NULL, DT_INTENT_LAST, NULL, NULL, 1, 1);
+    res = dt_imageio_export_with_flags(imgid, "unused", &format, (dt_imageio_module_data_t *)&dat, TRUE, FALSE, FALSE,
+                                       FALSE, TRUE, NULL, FALSE, DT_COLORSPACE_NONE, NULL, DT_INTENT_LAST, NULL, NULL,
+                                       1, 1);
     if(!res)
     {
       // might be smaller, or have a different aspect than what we got as input.

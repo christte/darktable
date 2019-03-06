@@ -32,7 +32,6 @@
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "iop/iop_api.h"
-#include "common/iop_group.h"
 #include <assert.h>
 #include <math.h>
 #include <stdlib.h>
@@ -73,9 +72,9 @@ const char *name()
   return C_("modulename", "sharpen");
 }
 
-int groups()
+int default_group()
 {
-  return dt_iop_get_group("sharpen", IOP_GROUP_CORRECT);
+  return IOP_GROUP_CORRECT;
 }
 
 int flags()
@@ -91,8 +90,9 @@ void init_presets(dt_iop_module_so_t *self)
                              1);
   // restrict to raw images
   dt_gui_presets_update_ldr(_("sharpen"), self->op, self->version(), FOR_RAW);
-  // make it auto-apply for matching images:
-  dt_gui_presets_update_autoapply(_("sharpen"), self->op, self->version(), 1);
+  // make it auto-apply if needed for matching images:
+  const gboolean auto_apply = dt_conf_get_bool("plugins/darkroom/sharpen/auto_apply");
+  dt_gui_presets_update_autoapply(_("sharpen"), self->op, self->version(), auto_apply);
 }
 
 void init_key_accels(dt_iop_module_so_t *self)
@@ -294,7 +294,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
     return;
   }
 
-  float *const tmp = dt_alloc_align(16, (size_t)sizeof(float) * roi_out->width * roi_out->height);
+  float *const tmp = dt_alloc_align(64, (size_t)sizeof(float) * roi_out->width * roi_out->height);
   if(tmp == NULL)
   {
     fprintf(stderr, "[sharpen] failed to allocate temporary buffer\n");
@@ -305,7 +305,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
   const int wd4 = (wd & 3) ? (wd >> 2) + 1 : wd >> 2;
 
   const size_t mat_size = wd4 * 4 * sizeof(float);
-  float *const mat = dt_alloc_align(16, mat_size);
+  float *const mat = dt_alloc_align(64, mat_size);
   memset(mat, 0, mat_size);
 
   const float sigma2 = (1.0f / (2.5 * 2.5)) * (data->radius * roi_in->scale / piece->iscale)
@@ -328,7 +328,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
     for(i = rad; i < roi_out->width - wd4 * 4 + rad; i++)
     {
       const float *inp = in - ch * rad;
-      __attribute__((aligned(16))) float sum[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+      __attribute__((aligned(64))) float sum[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
       for(int k = 0; k < wd4 * 4; k += 4, inp += 4 * ch)
       {
@@ -370,7 +370,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
     for(int i = 0; i < roi_out->width; i++)
     {
       const float *inp = in - step * rad;
-      __attribute__((aligned(16))) float sum[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+      __attribute__((aligned(64))) float sum[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
       for(int k = 0; k < wd4 * 4; k += 4, inp += step * 4)
       {
@@ -478,7 +478,7 @@ void process_sse2(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, c
     return;
   }
 
-  float *const tmp = dt_alloc_align(16, (size_t)sizeof(float) * roi_out->width * roi_out->height);
+  float *const tmp = dt_alloc_align(64, (size_t)sizeof(float) * roi_out->width * roi_out->height);
   if(tmp == NULL)
   {
     fprintf(stderr, "[sharpen] failed to allocate temporary buffer\n");
@@ -489,7 +489,7 @@ void process_sse2(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, c
   const int wd4 = (wd & 3) ? (wd >> 2) + 1 : wd >> 2;
 
   const size_t mat_size = wd4 * 4 * sizeof(float);
-  float *const mat = dt_alloc_align(16, mat_size);
+  float *const mat = dt_alloc_align(64, mat_size);
   memset(mat, 0, mat_size);
 
   const float sigma2 = (1.0f / (2.5 * 2.5)) * (data->radius * roi_in->scale / piece->iscale)
@@ -512,7 +512,7 @@ void process_sse2(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, c
     for(i = rad; i < roi_out->width - wd4 * 4 + rad; i++)
     {
       const float *inp = in - ch * rad;
-      __attribute__((aligned(16))) float sum[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+      __attribute__((aligned(64))) float sum[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
       __m128 msum = _mm_setzero_ps();
 
       for(int k = 0; k < wd4 * 4; k += 4, inp += 4 * ch)
@@ -552,7 +552,7 @@ void process_sse2(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, c
 
     const int step = roi_in->width;
 
-    __attribute__((aligned(16))) float sum[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    __attribute__((aligned(64))) float sum[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
     for(int i = 0; i < roi_out->width; i++)
     {

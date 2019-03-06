@@ -34,7 +34,6 @@
 #include "gui/accelerators.h"
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
-#include "common/iop_group.h"
 #include <gtk/gtk.h>
 #include <inttypes.h>
 
@@ -91,9 +90,9 @@ int flags()
   return IOP_FLAGS_INCLUDE_IN_STYLES | IOP_FLAGS_SUPPORTS_BLENDING | IOP_FLAGS_ALLOW_TILING;
 }
 
-int groups()
+int default_group()
 {
-  return dt_iop_get_group("soften", IOP_GROUP_EFFECT);
+  return IOP_GROUP_EFFECT;
 }
 
 void init_key_accels(dt_iop_module_so_t *self)
@@ -149,7 +148,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
   const int size = roi_out->width > roi_out->height ? roi_out->width : roi_out->height;
 
   const size_t scanline_size = (size_t)4 * size;
-  float *const scanline_buf = dt_alloc_align(16, scanline_size * dt_get_num_threads() * sizeof(float));
+  float *const scanline_buf = dt_alloc_align(64, scanline_size * dt_get_num_threads() * sizeof(float));
 
   for(int iteration = 0; iteration < BOX_ITERATIONS; iteration++)
   {
@@ -160,7 +159,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
     for(int y = 0; y < roi_out->height; y++)
     {
       float *scanline = scanline_buf + scanline_size * dt_get_thread_num();
-      __attribute__((aligned(16))) float L[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+      __attribute__((aligned(64))) float L[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
       size_t index = (size_t)y * roi_out->width;
       int hits = 0;
@@ -211,7 +210,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
     for(int x = 0; x < roi_out->width; x++)
     {
       float *scanline = scanline_buf + scanline_size * dt_get_thread_num();
-      __attribute__((aligned(16))) float L[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+      __attribute__((aligned(64))) float L[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
       int hits = 0;
       size_t index = (size_t)x - radius * roi_out->width;
@@ -306,7 +305,7 @@ void process_sse2(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, c
 
   const int size = roi_out->width > roi_out->height ? roi_out->width : roi_out->height;
 
-  __m128 *const scanline_buf = dt_alloc_align(16, size * dt_get_num_threads() * sizeof(__m128));
+  __m128 *const scanline_buf = dt_alloc_align(64, size * dt_get_num_threads() * sizeof(__m128));
 
   for(int iteration = 0; iteration < BOX_ITERATIONS; iteration++)
   {

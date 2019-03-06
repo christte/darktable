@@ -39,9 +39,9 @@
 #include "develop/tiling.h"
 #include "external/wb_presets.c"
 #include "gui/accelerators.h"
+#include "gui/color_picker_proxy.h"
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
-#include "common/iop_group.h"
 
 // for Kelvin temperature and bogus WB
 #include "common/colorspaces.h"
@@ -79,10 +79,12 @@ typedef struct dt_iop_temperature_gui_data_t
   GtkWidget *box_enabled;
   GtkWidget *label_disabled;
   GtkWidget *stack;
+  GtkWidget *colorpicker;
   int preset_cnt;
   int preset_num[50];
   double daylight_wb[4];
   double XYZ_to_CAM[4][3], CAM_to_XYZ[3][4];
+  dt_iop_color_picker_t color_picker;
 } dt_iop_temperature_gui_data_t;
 
 typedef struct dt_iop_temperature_data_t
@@ -161,10 +163,9 @@ const char *name()
   return C_("modulename", "white balance");
 }
 
-
-int groups()
+int default_group()
 {
-  return dt_iop_get_group("white balance", IOP_GROUP_BASIC);
+  return IOP_GROUP_BASIC;
 }
 
 int flags()
@@ -742,10 +743,8 @@ void gui_update(struct dt_iop_module_t *self)
   }
   gtk_stack_set_visible_child_name(GTK_STACK(g->stack), "enabled");
 
-  self->request_color_pick = DT_REQUEST_COLORPICK_OFF;
-  self->color_picker_box[0] = self->color_picker_box[1] = .25f;
-  self->color_picker_box[2] = self->color_picker_box[3] = .75f;
-  self->color_picker_point[0] = self->color_picker_point[1] = 0.5f;
+  dt_iop_color_picker_reset(self, TRUE);
+  gtk_widget_hide(g->colorpicker);
 
   double TempK, tint;
   mul2temp(self, p->coeffs, &TempK, &tint);
@@ -941,6 +940,57 @@ static void prepare_matrices(dt_iop_module_t *module)
   }
 }
 
+static void find_coeffs(dt_iop_module_t *module, float coeffs[4])
+{
+  const dt_image_t *img = &module->dev->image_storage;
+
+  // the raw should provide wb coeffs:
+  int ok = 1;
+  // Only check the first three values, the fourth is usually NAN for RGB
+  int num_coeffs = (img->flags & DT_IMAGE_4BAYER) ? 4 : 3;
+  for(int k = 0; ok && k < num_coeffs; k++)
+  {
+    if(!isnormal(img->wb_coeffs[k]) || img->wb_coeffs[k] == 0.0f) ok = 0;
+  }
+  if(ok)
+  {
+    for(int k = 0; k < 4; k++) coeffs[k] = img->wb_coeffs[k];
+    return;
+  }
+
+  if(!ignore_missing_wb(&(module->dev->image_storage)))
+  {
+    dt_control_log(_("failed to read camera white balance information from `%s'!"), img->filename);
+    fprintf(stderr, "[temperature] failed to read camera white balance information from `%s'!\n", img->filename);
+  }
+
+  double bwb[4];
+  if(!calculate_bogus_daylight_wb(module, bwb))
+  {
+    // found camera matrix and used it to calculate bogus daylight wb
+    for(int c = 0; c < 4; c++) coeffs[c] = bwb[c];
+    return;
+  }
+
+  // no cam matrix??? try presets:
+  for(int i = 0; i < wb_preset_count; i++)
+  {
+    if(!strcmp(wb_preset[i].make, img->camera_maker) && !strcmp(wb_preset[i].model, img->camera_model))
+    {
+      // just take the first preset we find for this camera
+      for(int k = 0; k < 3; k++) coeffs[k] = wb_preset[i].channel[k];
+      return;
+    }
+  }
+
+  // did not find preset either?
+  // final security net: hardcoded default that fits most cams.
+  coeffs[0] = 2.0f;
+  coeffs[1] = 1.0f;
+  coeffs[2] = 1.5f;
+  coeffs[3] = 1.0f;
+}
+
 void reload_defaults(dt_iop_module_t *module)
 {
   dt_iop_temperature_params_t tmp
@@ -960,88 +1010,26 @@ void reload_defaults(dt_iop_module_t *module)
   if(is_raw && dt_image_is_monochrome(&(module->dev->image_storage)))
   {
     module->hide_enable_button = 1;
-    goto gui;
   }
-  if(module->gui_data) prepare_matrices(module);
-
-  /* check if file is raw / hdr */
-  if(is_raw)
+  else
   {
-    // raw images need wb:
-    module->default_enabled = 1;
+    if(module->gui_data) prepare_matrices(module);
 
-    int found = 1;
+    /* check if file is raw / hdr */
+    if(is_raw)
+    {
+      // raw images need wb:
+      module->default_enabled = 1;
 
-    // Only check the first three values, the fourth is usually NAN for RGB
-    int num_coeffs = (module->dev->image_storage.flags & DT_IMAGE_4BAYER) ? 4 : 3;
-    for(int k = 0; k < num_coeffs; k++)
-    {
-      if(!isnormal(module->dev->image_storage.wb_coeffs[k]) || module->dev->image_storage.wb_coeffs[k] == 0.0f)
-      {
-        found = 0;
-        break;
-      }
-    }
-
-    if(found)
-    {
-      for(int k = 0; k < 4; k++) tmp.coeffs[k] = module->dev->image_storage.wb_coeffs[k];
-    }
-    else
-    {
-      if(!ignore_missing_wb(&(module->dev->image_storage)))
-      {
-        dt_control_log(_("failed to read camera white balance information from `%s'!"),
-                       module->dev->image_storage.filename);
-        fprintf(stderr, "[temperature] failed to read camera white balance information from `%s'!\n",
-                module->dev->image_storage.filename);
-      }
-    }
-
-    if(!found)
-    {
-      double bwb[4];
-      if(!calculate_bogus_daylight_wb(module, bwb))
-      {
-        // found camera matrix and used it to calculate bogus daylight wb
-        for(int c = 0; c < 4; c++) tmp.coeffs[c] = bwb[c];
-        found = 1;
-      }
-    }
-
-    // no cam matrix??? try presets:
-    if(!found)
-    {
-      for(int i = 0; i < wb_preset_count; i++)
-      {
-        if(!strcmp(wb_preset[i].make, module->dev->image_storage.camera_maker)
-           && !strcmp(wb_preset[i].model, module->dev->image_storage.camera_model))
-        {
-          // just take the first preset we find for this camera
-          for(int k = 0; k < 3; k++) tmp.coeffs[k] = wb_preset[i].channel[k];
-          found = 1;
-          break;
-        }
-      }
-    }
-
-    // did not find preset either?
-    if(!found)
-    {
-      // final security net: hardcoded default that fits most cams.
-      tmp.coeffs[0] = 2.0f;
+      // do best to find starting coeffs
+      find_coeffs(module, tmp.coeffs);
+      tmp.coeffs[0] /= tmp.coeffs[1];
+      tmp.coeffs[2] /= tmp.coeffs[1];
+      tmp.coeffs[3] /= tmp.coeffs[1];
       tmp.coeffs[1] = 1.0f;
-      tmp.coeffs[2] = 1.5f;
-      tmp.coeffs[3] = 1.0f;
     }
-
-    tmp.coeffs[0] /= tmp.coeffs[1];
-    tmp.coeffs[2] /= tmp.coeffs[1];
-    tmp.coeffs[3] /= tmp.coeffs[1];
-    tmp.coeffs[1] = 1.0f;
   }
 
-gui:
   // remember daylight wb used for temperature/tint conversion,
   // assuming it corresponds to CIE daylight (D65)
   if(module->gui_data)
@@ -1150,36 +1138,12 @@ static void gui_update_from_coeffs(dt_iop_module_t *self)
   darktable.gui->reset = 0;
 }
 
-
-static gboolean draw(GtkWidget *widget, cairo_t *cr, dt_iop_module_t *self)
-{
-  // capture gui color picked event.
-  if(darktable.gui->reset) return FALSE;
-  if(self->picked_color_max[0] < self->picked_color_min[0]) return FALSE;
-  if(self->request_color_pick == DT_REQUEST_COLORPICK_OFF) return FALSE;
-  const float *grayrgb = self->picked_color;
-  //test the newly picked color: if the same as the last, do not process further
-  if(grayrgb[0] == old[0] && grayrgb[1] == old[1] && grayrgb[2] == old[2] && grayrgb[3] == old[3]) return FALSE;
-  for(int k = 0; k < 4; k++) old[k] = grayrgb[k];
-  dt_iop_temperature_params_t *p = (dt_iop_temperature_params_t *)self->params;
-  for(int k = 0; k < 4; k++) p->coeffs[k] = (grayrgb[k] > 0.001f) ? 1.0f / grayrgb[k] : 1.0f;
-  // normalize green:
-  p->coeffs[0] /= p->coeffs[1];
-  p->coeffs[2] /= p->coeffs[1];
-  p->coeffs[3] /= p->coeffs[1];
-  p->coeffs[1] = 1.0;
-  // clamp
-  for(int k = 0; k < 4; k++) p->coeffs[k] = fmaxf(0.0f, fminf(8.0f, p->coeffs[k]));
-
-  gui_update_from_coeffs(self);
-  dt_dev_add_history_item(darktable.develop, self, TRUE);
-  return FALSE;
-}
-
 static void temp_changed(dt_iop_module_t *self)
 {
   dt_iop_temperature_gui_data_t *g = (dt_iop_temperature_gui_data_t *)self->gui_data;
   dt_iop_temperature_params_t *p = (dt_iop_temperature_params_t *)self->params;
+
+  dt_iop_color_picker_reset(self, TRUE);
 
   const double TempK = dt_bauhaus_slider_get(g->scale_k);
   const double tint = dt_bauhaus_slider_get(g->scale_tint);
@@ -1228,6 +1192,7 @@ static void rgb_callback(GtkWidget *slider, gpointer user_data)
   if(self->dt->gui->reset) return;
   dt_iop_temperature_gui_data_t *g = (dt_iop_temperature_gui_data_t *)self->gui_data;
   dt_iop_temperature_params_t *p = (dt_iop_temperature_params_t *)self->params;
+  dt_iop_color_picker_reset(self, TRUE);
   const float value = dt_bauhaus_slider_get(slider);
   if(slider == g->scale_r)
     p->coeffs[0] = value;
@@ -1245,9 +1210,9 @@ static void rgb_callback(GtkWidget *slider, gpointer user_data)
 
 static void apply_preset(dt_iop_module_t *self)
 {
-  self->request_color_pick = DT_REQUEST_COLORPICK_OFF;
   if(self->dt->gui->reset) return;
   dt_iop_temperature_gui_data_t *g = (dt_iop_temperature_gui_data_t *)self->gui_data;
+  dt_iop_color_picker_reset(self, TRUE);
   dt_iop_temperature_params_t *p = (dt_iop_temperature_params_t *)self->params;
   dt_iop_temperature_params_t *fp = (dt_iop_temperature_params_t *)self->default_params;
   const int tune = dt_bauhaus_slider_get(g->finetune);
@@ -1266,14 +1231,7 @@ static void apply_preset(dt_iop_module_t *self)
 
       //reset previously stored color picker information
       for(int k = 0; k < 4; k++) old[k] = 0.0f;
-
-      dt_iop_request_focus(self);
-      self->request_color_pick = DT_REQUEST_COLORPICK_MODULE;
-
-      /* set the area sample size*/
-      if(self->request_color_pick != DT_REQUEST_COLORPICK_OFF)
-        dt_lib_colorpicker_set_area(darktable.lib, 0.99);
-
+      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->colorpicker), TRUE);
       break;
     default: // camera WB presets
     {
@@ -1347,6 +1305,30 @@ static void finetune_changed(GtkWidget *widget, gpointer user_data)
   apply_preset((dt_iop_module_t *)user_data);
 }
 
+static void _iop_color_picker_apply(struct dt_iop_module_t *self)
+{
+  if(self->dt->gui->reset) return;
+
+  // capture gui color picked event.
+  if(self->picked_color_max[0] < self->picked_color_min[0]) return;
+  const float *grayrgb = self->picked_color;
+  // test the newly picked color: if the same as the last, do not process further
+  if(grayrgb[0] == old[0] && grayrgb[1] == old[1] && grayrgb[2] == old[2] && grayrgb[3] == old[3]) return;
+  for(int k = 0; k < 4; k++) old[k] = grayrgb[k];
+  dt_iop_temperature_params_t *p = (dt_iop_temperature_params_t *)self->params;
+  for(int k = 0; k < 4; k++) p->coeffs[k] = (grayrgb[k] > 0.001f) ? 1.0f / grayrgb[k] : 1.0f;
+  // normalize green:
+  p->coeffs[0] /= p->coeffs[1];
+  p->coeffs[2] /= p->coeffs[1];
+  p->coeffs[3] /= p->coeffs[1];
+  p->coeffs[1] = 1.0;
+  // clamp
+  for(int k = 0; k < 4; k++) p->coeffs[k] = fmaxf(0.0f, fminf(8.0f, p->coeffs[k]));
+
+  gui_update_from_coeffs(self);
+  dt_dev_add_history_item(darktable.develop, self, TRUE);
+}
+
 static void gui_sliders_update(struct dt_iop_module_t *self)
 {
   const dt_image_t *img = &self->dev->image_storage;
@@ -1385,10 +1367,8 @@ void gui_init(struct dt_iop_module_t *self)
   dt_iop_temperature_gui_data_t *g = (dt_iop_temperature_gui_data_t *)self->gui_data;
   dt_iop_temperature_params_t *p = (dt_iop_temperature_params_t *)self->default_params;
 
-  self->request_color_pick = DT_REQUEST_COLORPICK_OFF;
   self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   dt_gui_add_help_link(self->widget, dt_get_help_url(self->op));
-  g_signal_connect(G_OBJECT(self->widget), "draw", G_CALLBACK(draw), self);
 
   g->stack = gtk_stack_new();
   gtk_stack_set_homogeneous(GTK_STACK(g->stack), FALSE);
@@ -1472,6 +1452,16 @@ void gui_init(struct dt_iop_module_t *self)
 
   gtk_stack_set_visible_child_name(GTK_STACK(g->stack), self->hide_enable_button ? "disabled" : "enabled");
 
+  g->colorpicker
+      = dtgtk_togglebutton_new(dtgtk_cairo_paint_colorpicker, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
+  gtk_widget_set_size_request(GTK_WIDGET(g->colorpicker), DT_PIXEL_APPLY_DPI(14), DT_PIXEL_APPLY_DPI(14));
+  gtk_box_pack_start(GTK_BOX(g->box_enabled), GTK_WIDGET(g->colorpicker), FALSE, FALSE, 0);
+  g_signal_connect(G_OBJECT(g->colorpicker), "toggled", G_CALLBACK(dt_iop_color_picker_callback), &g->color_picker);
+  gtk_widget_show_all(g->colorpicker);
+
+  dt_iop_init_single_picker(&g->color_picker, self, GTK_WIDGET(g->colorpicker), DT_COLOR_PICKER_AREA,
+                            _iop_color_picker_apply);
+
   self->gui_update(self);
 
   g_signal_connect(G_OBJECT(g->scale_tint), "value-changed", G_CALLBACK(tint_callback), self);
@@ -1486,12 +1476,12 @@ void gui_init(struct dt_iop_module_t *self)
 
 void gui_reset(struct dt_iop_module_t *self)
 {
+  dt_iop_color_picker_reset(self, TRUE);
   gui_sliders_update(self);
 }
 
 void gui_cleanup(struct dt_iop_module_t *self)
 {
-  self->request_color_pick = DT_REQUEST_COLORPICK_OFF;
   free(self->gui_data);
   self->gui_data = NULL;
 }

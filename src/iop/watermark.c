@@ -25,9 +25,9 @@
 #include "dtgtk/resetlabel.h"
 #include "dtgtk/togglebutton.h"
 #include "gui/accelerators.h"
+#include "gui/color_picker_proxy.h"
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
-#include "common/iop_group.h"
 #include <assert.h>
 #include <gtk/gtk.h>
 #include <inttypes.h>
@@ -108,6 +108,8 @@ typedef struct dt_iop_watermark_gui_data_t
   GtkWidget *text;
   GtkWidget *colorpick;
   GtkWidget *fontsel;
+  GtkToggleButton *color_picker_button;
+  dt_iop_color_picker_t color_picker;
 } dt_iop_watermark_gui_data_t;
 
 int legacy_params(dt_iop_module_t *self, const void *const old_params, const int old_version,
@@ -147,7 +149,6 @@ int legacy_params(dt_iop_module_t *self, const void *const old_params, const int
     g_strlcpy(n->text, "", sizeof(n->text));
     g_strlcpy(n->font, "DejaVu Sans 10", sizeof(n->font));
     n->color[0] = n->color[1] = n->color[2] = 0;
-
     return 0;
   }
   else if(old_version == 2 && new_version == 4)
@@ -240,9 +241,9 @@ int flags()
   return IOP_FLAGS_INCLUDE_IN_STYLES | IOP_FLAGS_SUPPORTS_BLENDING;
 }
 
-int groups()
+int default_group()
 {
-  return dt_iop_get_group("watermark", IOP_GROUP_EFFECT);
+  return IOP_GROUP_EFFECT;
 }
 
 int operation_tags()
@@ -289,10 +290,17 @@ static void _combo_box_set_active_text(dt_iop_watermark_gui_data_t *g, gchar *te
 // replace < and > with &lt; and &gt;. any more? Yes! & -> &amp;
 static gchar *_string_escape(const gchar *string)
 {
-  gchar *result;
+  gchar *result, *result_old;
   result = dt_util_str_replace(string, "&", "&amp;");
-  result = dt_util_str_replace(result, "<", "&lt;");
-  result = dt_util_str_replace(result, ">", "&gt;");
+
+  result_old = result;
+  result = dt_util_str_replace(result_old, "<", "&lt;");
+  g_free(result_old);
+
+  result_old = result;
+  result = dt_util_str_replace(result_old, ">", "&gt;");
+  g_free(result_old);
+
   return result;
 }
 
@@ -807,7 +815,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
   float *in = (float *)ivoid;
   float *out = (float *)ovoid;
   const int ch = piece->colors;
-  double angle = (M_PI / 180) * -data->rotate;
+  const float angle = (M_PI / 180) * (-data->rotate);
 
   /* Load svg if not loaded */
   gchar *svgdoc = _watermark_get_svgdoc(self, data, &piece->pipe->image);
@@ -859,7 +867,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
   //  width/height of current (possibly cropped) image
   const float iw = piece->buf_in.width;
   const float ih = piece->buf_in.height;
-  const float uscale = data->scale / 100.0; // user scale, from GUI in percent
+  const float uscale = data->scale / 100.0f; // user scale, from GUI in percent
 
   // wbase, hbase are the base width and height, this is the multiplicator used for the offset computing
   // scale is the scale of the watermark itself and is used only to render it.
@@ -935,11 +943,10 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
   }
 
   // compute bounding box of rotated watermark
-  float bb_width, bb_height;
-  bb_width = fabs(svg_width * cos(angle)) + fabs(svg_height * sin(angle));
-  bb_height = fabs(svg_width * sin(angle)) + fabs(svg_height * cos(angle));
-  float bX = bb_width / 2.0 - svg_width / 2.0;
-  float bY = bb_height / 2.0 - svg_height / 2.0;
+  const float bb_width = fabsf(svg_width * cosf(angle)) + fabsf(svg_height * sinf(angle));
+  const float bb_height = fabsf(svg_width * sinf(angle)) + fabsf(svg_height * cosf(angle));
+  const float bX = bb_width / 2.0f - svg_width / 2.0f;
+  const float bY = bb_height / 2.0f - svg_height / 2.0f;
 
   // compute translation for the given alignment in image dimension
 
@@ -947,14 +954,14 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
   if(data->alignment >= 0 && data->alignment < 3) // Align to verttop
     ty = bY;
   else if(data->alignment >= 3 && data->alignment < 6) // Align to vertcenter
-    ty = (ih / 2.0) - (svg_height / 2.0);
+    ty = (ih / 2.0f) - (svg_height / 2.0f);
   else if(data->alignment >= 6 && data->alignment < 9) // Align to vertbottom
     ty = ih - svg_height - bY;
 
   if(data->alignment == 0 || data->alignment == 3 || data->alignment == 6)
     tx = bX;
   else if(data->alignment == 1 || data->alignment == 4 || data->alignment == 7)
-    tx = (iw / 2.0) - (svg_width / 2.0);
+    tx = (iw / 2.0f) - (svg_width / 2.0f);
   else if(data->alignment == 2 || data->alignment == 5 || data->alignment == 8)
     tx = iw - svg_width - bX;
 
@@ -968,8 +975,8 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
   cairo_translate(cr, tx * roi_out->scale, ty * roi_out->scale);
 
   // compute the center of the svg to rotate from the center
-  float cX = svg_width / 2.0 * roi_out->scale;
-  float cY = svg_height / 2.0 * roi_out->scale;
+  const float cX = svg_width / 2.0f * roi_out->scale;
+  const float cY = svg_height / 2.0f * roi_out->scale;
 
   cairo_translate(cr, cX, cY);
   cairo_rotate(cr, angle);
@@ -991,7 +998,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
 
   /* render surface on output */
   guint8 *sd = image;
-  float opacity = data->opacity / 100.0;
+  const float opacity = data->opacity / 100.0f;
   /*
   #ifdef _OPENMP
     #pragma omp parallel for default(none) shared(in, out,sd,opacity) schedule(static)
@@ -1000,11 +1007,11 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
   for(int j = 0; j < roi_out->height; j++)
     for(int i = 0; i < roi_out->width; i++)
     {
-      float alpha = (sd[3] / 255.0) * opacity;
+      const float alpha = (sd[3] / 255.0f) * opacity;
       /* svg uses a premultiplied alpha, so only use opacity for the blending */
-      out[0] = ((1.0 - alpha) * in[0]) + (opacity * (sd[2] / 255.0));
-      out[1] = ((1.0 - alpha) * in[1]) + (opacity * (sd[1] / 255.0));
-      out[2] = ((1.0 - alpha) * in[2]) + (opacity * (sd[0] / 255.0));
+      out[0] = ((1.0f - alpha) * in[0]) + (opacity * (sd[2] / 255.0f));
+      out[1] = ((1.0f - alpha) * in[1]) + (opacity * (sd[1] / 255.0f));
+      out[2] = ((1.0f - alpha) * in[2]) + (opacity * (sd[0] / 255.0f));
       out[3] = in[3];
 
       out += ch;
@@ -1032,6 +1039,31 @@ static void watermark_callback(GtkWidget *tb, gpointer user_data)
   dt_dev_add_history_item(darktable.develop, self, TRUE);
 }
 
+static void _iop_color_picker_apply(dt_iop_module_t *self)
+{
+  dt_iop_watermark_gui_data_t *g = (dt_iop_watermark_gui_data_t *)self->gui_data;
+  dt_iop_watermark_params_t *p = (dt_iop_watermark_params_t *)self->params;
+
+  if(fabsf(p->color[0] - self->picked_color[0]) < 0.0001f
+     && fabsf(p->color[1] - self->picked_color[1]) < 0.0001f
+     && fabsf(p->color[2] - self->picked_color[2]) < 0.0001f)
+  {
+    // interrupt infinite loops
+    return;
+  }
+
+  GdkRGBA c = {.red   = self->picked_color[0],
+               .green = self->picked_color[1],
+               .blue  = self->picked_color[2],
+               .alpha = 1.0 };
+
+  p->color[0] = self->picked_color[0];
+  p->color[1] = self->picked_color[1];
+  p->color[2] = self->picked_color[2];
+  gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(g->colorpick), &c);
+
+  dt_dev_add_history_item(darktable.develop, self, TRUE);
+}
 
 static void load_watermarks(const char *basedir, dt_iop_watermark_gui_data_t *g)
 {
@@ -1289,9 +1321,8 @@ void init(dt_iop_module_t *module)
   module->default_params = calloc(1, sizeof(dt_iop_watermark_params_t));
   module->default_enabled = 0;
   module->priority = 971; // module order created by iop_dependencies.py, do not edit!
-  module->params_size = sizeof(dt_iop_watermark_params_t);
   module->gui_data = NULL;
-  dt_iop_watermark_params_t tmp = (dt_iop_watermark_params_t){
+  dt_iop_watermark_params_t tmp = {
     100.0, 100.0, 0.0, 0.0, 4, 0.0, DT_SCALE_IMAGE, { "darktable.svg" }, { "" }, {0.0, 0.0, 0.0}, {"DejaVu Sans 10"}
   }; // opacity,scale,xoffs,yoffs,alignment
   memcpy(module->params, &tmp, sizeof(dt_iop_watermark_params_t));
@@ -1341,6 +1372,8 @@ void gui_init(struct dt_iop_module_t *self)
   float blue = dt_conf_get_float("plugins/darkroom/watermark/color_blue");
   GdkRGBA color = (GdkRGBA){.red = red, .green = green, .blue = blue, .alpha = 1.0 };
 
+  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+
   label = dtgtk_reset_label_new(_("color"), self, &p->color, 3 * sizeof(float));
   g->colorpick = gtk_color_button_new_with_rgba(&color);
   gtk_widget_set_tooltip_text(g->colorpick, _("watermark color, tag:\n$(WATERMARK_COLOR)"));
@@ -1348,8 +1381,16 @@ void gui_init(struct dt_iop_module_t *self)
   gtk_widget_set_size_request(GTK_WIDGET(g->colorpick), DT_PIXEL_APPLY_DPI(24), DT_PIXEL_APPLY_DPI(24));
   gtk_color_button_set_title(GTK_COLOR_BUTTON(g->colorpick), _("select watermark color"));
 
+  g->color_picker_button = GTK_TOGGLE_BUTTON(dtgtk_togglebutton_new(dtgtk_cairo_paint_colorpicker, CPF_STYLE_FLAT, NULL));
+  gtk_widget_set_tooltip_text(GTK_WIDGET(g->color_picker_button), _("pick color from image"));
+  gtk_widget_set_size_request(GTK_WIDGET(g->color_picker_button), DT_PIXEL_APPLY_DPI(24), DT_PIXEL_APPLY_DPI(24));
+  g_signal_connect(G_OBJECT(g->color_picker_button), "toggled", G_CALLBACK(dt_iop_color_picker_callback), &g->color_picker);
+
+  gtk_box_pack_start(GTK_BOX(box), g->colorpick, TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(g->color_picker_button), FALSE, TRUE, 0);
+
   gtk_grid_attach(GTK_GRID(self->widget), label, 0, line++, 1, 1);
-  gtk_grid_attach_next_to(GTK_GRID(self->widget), g->colorpick, label, GTK_POS_RIGHT, 2, 1);
+  gtk_grid_attach_next_to(GTK_GRID(self->widget), box, label, GTK_POS_RIGHT, 2, 1);
 
   // Simple text
   label = gtk_label_new(_("text"));
@@ -1450,13 +1491,18 @@ void gui_init(struct dt_iop_module_t *self)
 
   refresh_watermarks(self);
 
-
   g_signal_connect(G_OBJECT(g->watermarks), "value-changed", G_CALLBACK(watermark_callback), self);
   g_signal_connect(G_OBJECT(g->sizeto), "value-changed", G_CALLBACK(sizeto_callback), self);
 
   g_signal_connect(G_OBJECT(g->text), "changed", G_CALLBACK(text_callback), self);
   g_signal_connect(G_OBJECT(g->colorpick), "color-set", G_CALLBACK(colorpick_color_set), self);
   g_signal_connect(G_OBJECT(g->fontsel), "font-set", G_CALLBACK(fontsel_callback), self);
+
+  dt_iop_init_single_picker(&g->color_picker,
+                     self,
+                     GTK_WIDGET(g->color_picker_button),
+                     DT_COLOR_PICKER_POINT,
+                     _iop_color_picker_apply);
 }
 
 void gui_cleanup(struct dt_iop_module_t *self)
