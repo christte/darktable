@@ -21,8 +21,8 @@
 #include "develop/imageop.h"
 #include "bauhaus/bauhaus.h"
 #include "common/debug.h"
-#include "common/exif.h"
 #include "common/dtpthread.h"
+#include "common/exif.h"
 #include "common/imageio_rawspeed.h"
 #include "common/interpolation.h"
 #include "common/iop_group.h"
@@ -40,9 +40,9 @@
 #include "dtgtk/gradientslider.h"
 #include "dtgtk/icon.h"
 #include "gui/accelerators.h"
+#include "gui/color_picker_proxy.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
-#include "gui/color_picker_proxy.h"
 #include "libs/modulegroups.h"
 #ifdef GDK_WINDOWING_QUARTZ
 #include "osx/osx.h"
@@ -82,7 +82,10 @@ static dt_develop_blend_params_t _default_blendop_params
           0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
           0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
           0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f },
-        { 0 }, 0, 0, FALSE };
+        { 0 },
+        0,
+        0,
+        FALSE };
 
 static void _iop_panel_label(GtkWidget *lab, dt_iop_module_t *module);
 
@@ -679,8 +682,8 @@ static void dt_iop_gui_move_up_down_callback(GtkButton *button, dt_iop_module_t 
   GValue gv = { 0, { { 0 } } };
   g_value_init(&gv, G_TYPE_INT);
   gtk_container_child_get_property(
-    GTK_CONTAINER(dt_ui_get_container(darktable.gui->ui, DT_UI_CONTAINER_PANEL_RIGHT_CENTER)),
-                                   module->expander, "position", &gv);
+      GTK_CONTAINER(dt_ui_get_container(darktable.gui->ui, DT_UI_CONTAINER_PANEL_RIGHT_CENTER)), module->expander,
+      "position", &gv);
   gtk_box_reorder_child(dt_ui_get_container(darktable.gui->ui, DT_UI_CONTAINER_PANEL_RIGHT_CENTER),
                         module->expander, g_value_get_int(&gv) + (up ? -1 : 1));
 
@@ -2316,8 +2319,7 @@ void dt_iop_update_multi_priority(dt_iop_module_t *module, int new_priority)
     for(GList *hiter = module->dev->history; hiter; hiter = g_list_next(hiter))
     {
       dt_dev_history_item_t *hist = (dt_dev_history_item_t *)hiter->data;
-      if(hist->module == sink_module)
-        hist->blend_params->raster_mask_instance = new_priority;
+      if(hist->module == sink_module) hist->blend_params->raster_mask_instance = new_priority;
     }
   }
 
@@ -2332,8 +2334,7 @@ gboolean dt_iop_is_raster_mask_used(dt_iop_module_t *module, int id)
   g_hash_table_iter_init(&iter, module->raster_mask.source.users);
   while(g_hash_table_iter_next(&iter, &key, &value))
   {
-    if(GPOINTER_TO_INT(value) == id)
-      return TRUE;
+    if(GPOINTER_TO_INT(value) == id) return TRUE;
   }
   return FALSE;
 }

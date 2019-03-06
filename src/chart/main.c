@@ -771,14 +771,14 @@ static char *encode_tonecurve(const tonecurve_t *c)
     params.tonecurve[0][k].y = tonecurve_apply(c, 100.0 * x) / 100.0;
   }
 
-  params.tonecurve_type[1] = 2;      // MONOTONE_HERMITE
+  params.tonecurve_type[1] = 2; // MONOTONE_HERMITE
   params.tonecurve_nodes[1] = 2;
   params.tonecurve[1][0].x = 0.0f;
   params.tonecurve[1][0].y = 0.0f;
   params.tonecurve[1][1].x = 1.0f;
   params.tonecurve[1][1].y = 1.0f;
 
-  params.tonecurve_type[2] = 2;      // MONOTONE_HERMITE
+  params.tonecurve_type[2] = 2; // MONOTONE_HERMITE
   params.tonecurve_nodes[2] = 2;
   params.tonecurve[2][0].x = 0.0f;
   params.tonecurve[2][0].y = 0.0f;

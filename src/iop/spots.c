@@ -359,8 +359,8 @@ static int masks_get_delta(dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece,
   return res;
 }
 
-void _process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const float *const in,
-              float *const out, const dt_iop_roi_t *const roi_in, const dt_iop_roi_t *const roi_out, const int ch)
+void _process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const float *const in, float *const out,
+              const dt_iop_roi_t *const roi_in, const dt_iop_roi_t *const roi_out, const int ch)
 {
   dt_iop_spots_params_t *d = (dt_iop_spots_params_t *)piece->data;
   dt_develop_blend_params_t *bp = self->blend_params;
@@ -464,8 +464,11 @@ void _process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const
             for(int c = 0; c < ch; c++)
               out[ch * ((size_t)roi_out->width * (yy - roi_out->y) + xx - roi_out->x) + c]
                   = out[ch * ((size_t)roi_out->width * (yy - roi_out->y) + xx - roi_out->x) + c] * (1.0f - f)
-                    + in[ch * ((size_t)roi_in->width * (yy - posy + posy_source - roi_in->y) + xx - posx
-                              + posx_source - roi_in->x) + c] * f;
+                    + in[ch
+                             * ((size_t)roi_in->width * (yy - posy + posy_source - roi_in->y) + xx - posx
+                                + posx_source - roi_in->x)
+                         + c]
+                          * f;
           }
         }
 
@@ -699,7 +702,7 @@ void gui_cleanup(dt_iop_module_t *self)
 void init_key_accels (dt_iop_module_so_t *module)
 {
   dt_accel_register_iop (module, TRUE, NC_("accel", "spot circle tool"),   0, 0);
-  dt_accel_register_iop (module, TRUE, NC_("accel", "spot ellipse tool"),   0, 0);
+  dt_accel_register_iop(module, TRUE, NC_("accel", "spot ellipse tool"), 0, 0);
   dt_accel_register_iop (module, TRUE, NC_("accel", "spot path tool"),     0, 0);
   dt_accel_register_iop (module, TRUE, NC_("accel", "spot show or hide"),  0, 0);
 }
@@ -750,7 +753,7 @@ void connect_key_accels (dt_iop_module_t *module)
   dt_accel_connect_iop (module, "spot circle tool", closure);
 
   closure = g_cclosure_new(G_CALLBACK(_add_ellipse_key_accel), (gpointer)module, NULL);
-  dt_accel_connect_iop (module, "spot ellipse tool", closure);
+  dt_accel_connect_iop(module, "spot ellipse tool", closure);
 
   closure = g_cclosure_new(G_CALLBACK(_add_path_key_accel), (gpointer)module, NULL);
   dt_accel_connect_iop (module, "spot path tool", closure);

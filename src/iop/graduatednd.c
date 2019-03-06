@@ -268,18 +268,20 @@ static int set_grad_from_points(struct dt_iop_module_t *self, float xa, float ya
 
   if(diff_x > eps)
   {
-    if(v >=  MPI2) v -= M_PI;
-    if(v <  -MPI2) v += M_PI;
+    if(v >= MPI2) v -= M_PI;
+    if(v < -MPI2) v += M_PI;
   }
   else if(diff_x < -eps)
   {
-    if(v <  MPI2 && v >= 0) v -= M_PI;
-    if(v > -MPI2 && v < 0)  v += M_PI;
+    if(v < MPI2 && v >= 0) v -= M_PI;
+    if(v > -MPI2 && v < 0) v += M_PI;
   }
   else // let's pretend that we are at PI/2
   {
-    if(v <0) v = -MPI2;
-    else v = MPI2;
+    if(v < 0)
+      v = -MPI2;
+    else
+      v = MPI2;
   }
 
   *rotation = -v * 180.0 / M_PI;
@@ -434,7 +436,7 @@ static void _iop_color_picker_apply(struct dt_iop_module_t *self)
     return;
   }
 
-  p->hue        = H;
+  p->hue = H;
   p->saturation = S;
 
   const int reset = darktable.gui->reset;
@@ -1234,9 +1236,11 @@ void gui_init(struct dt_iop_module_t *self)
   dt_bauhaus_slider_set_stop(g->gslider1, 1.0f, 1.0f, 0.0f, 0.0f);
   gtk_widget_set_tooltip_text(g->gslider1, _("select the hue tone of filter"));
   g_signal_connect(G_OBJECT(g->gslider1), "value-changed", G_CALLBACK(hue_callback), self);
-  dt_bauhaus_widget_set_quad_paint(g->gslider1, dtgtk_cairo_paint_colorpicker, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
+  dt_bauhaus_widget_set_quad_paint(g->gslider1, dtgtk_cairo_paint_colorpicker,
+                                   CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
   dt_bauhaus_widget_set_quad_toggle(g->gslider1, TRUE);
-  g_signal_connect(G_OBJECT(g->gslider1), "quad-pressed", G_CALLBACK(dt_iop_color_picker_callback), &g->color_picker);
+  g_signal_connect(G_OBJECT(g->gslider1), "quad-pressed", G_CALLBACK(dt_iop_color_picker_callback),
+                   &g->color_picker);
 
   /* saturation slider */
   g->gslider2 = dt_bauhaus_slider_new_with_range(self, 0.0f, 1.0f, 0.01f, 0.0f, 2);
@@ -1253,11 +1257,7 @@ void gui_init(struct dt_iop_module_t *self)
   g->dragging = 0;
   g->define = 0;
 
-  dt_iop_init_single_picker(&g->color_picker,
-                     self,
-                     g->gslider1,
-                     DT_COLOR_PICKER_POINT,
-                     _iop_color_picker_apply);
+  dt_iop_init_single_picker(&g->color_picker, self, g->gslider1, DT_COLOR_PICKER_POINT, _iop_color_picker_apply);
 }
 
 void gui_cleanup(struct dt_iop_module_t *self)

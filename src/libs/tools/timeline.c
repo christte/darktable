@@ -29,7 +29,8 @@
 
 DT_MODULE(1)
 
-typedef enum dt_lib_timeline_zooms_t {
+typedef enum dt_lib_timeline_zooms_t
+{
   DT_LIB_TIMELINE_ZOOM_YEAR = 0,
   DT_LIB_TIMELINE_ZOOM_4MONTH,
   DT_LIB_TIMELINE_ZOOM_MONTH,
@@ -41,7 +42,8 @@ typedef enum dt_lib_timeline_zooms_t {
   DT_LIB_TIMELINE_ZOOM_MINUTE
 } dt_lib_timeline_zooms_t;
 
-typedef enum dt_lib_timeline_mode_t {
+typedef enum dt_lib_timeline_mode_t
+{
   DT_LIB_TIMELINE_MODE_AND = 0,
   DT_LIB_TIMELINE_MODE_RESET
 } dt_lib_timeline_mode_t;

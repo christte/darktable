@@ -33,8 +33,8 @@
 #include "develop/imageop_math.h"
 #include "dtgtk/button.h"
 #include "dtgtk/resetlabel.h"
-#include "gui/color_picker_proxy.h"
 #include "gui/accelerators.h"
+#include "gui/color_picker_proxy.h"
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
 
@@ -614,11 +614,8 @@ void gui_init(dt_iop_module_t *self)
   g_signal_connect(G_OBJECT(g->picker), "toggled", G_CALLBACK(dt_iop_color_picker_callback), &g->color_picker);
   gtk_box_pack_start(GTK_BOX(g->pickerbuttons), g->picker, TRUE, TRUE, 5);
 
-  dt_iop_init_single_picker(&g->color_picker,
-                     self,
-                     GTK_WIDGET(g->picker),
-                     DT_COLOR_PICKER_AREA,
-                     _iop_color_picker_apply);
+  dt_iop_init_single_picker(&g->color_picker, self, GTK_WIDGET(g->picker), DT_COLOR_PICKER_AREA,
+                            _iop_color_picker_apply);
 }
 
 void gui_cleanup(dt_iop_module_t *self)

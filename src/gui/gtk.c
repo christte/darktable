@@ -1742,7 +1742,8 @@ static GtkWidget *_ui_init_panel_container_center(GtkWidget *container, gboolean
                                     left ? GTK_CORNER_TOP_LEFT : GTK_CORNER_TOP_RIGHT);
   gtk_box_pack_start(GTK_BOX(container), widget, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(widget), GTK_POLICY_AUTOMATIC,
-                                 dt_conf_get_bool("panel_scrollbars_always_visible")?GTK_POLICY_ALWAYS:GTK_POLICY_AUTOMATIC);
+                                 dt_conf_get_bool("panel_scrollbars_always_visible") ? GTK_POLICY_ALWAYS
+                                                                                     : GTK_POLICY_AUTOMATIC);
 
   g_signal_connect(G_OBJECT(gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(widget))), "notify::lower",
                    G_CALLBACK(_ui_panel_size_changed), GINT_TO_POINTER(left ? 1 : 0));
@@ -2036,8 +2037,8 @@ void dt_gui_load_theme(const char *theme)
 
   GError *error = NULL;
   GtkStyleProvider *themes_style_provider = GTK_STYLE_PROVIDER(gtk_css_provider_new());
-  gtk_style_context_add_provider_for_screen
-    (gdk_screen_get_default(), themes_style_provider, GTK_STYLE_PROVIDER_PRIORITY_USER + 1);
+  gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), themes_style_provider,
+                                            GTK_STYLE_PROVIDER_PRIORITY_USER + 1);
 
   if(!gtk_css_provider_load_from_path(GTK_CSS_PROVIDER(themes_style_provider), path, &error))
   {

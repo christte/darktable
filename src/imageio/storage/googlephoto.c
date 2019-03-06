@@ -18,6 +18,7 @@
     along with darktable.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "common/curl_tools.h"
 #include "common/darktable.h"
 #include "common/image.h"
 #include "common/image_cache.h"
@@ -26,7 +27,6 @@
 #include "common/metadata.h"
 #include "common/pwstorage/pwstorage.h"
 #include "common/tags.h"
-#include "common/curl_tools.h"
 #include "control/conf.h"
 #include "control/control.h"
 #include "dtgtk/button.h"
@@ -38,9 +38,9 @@
 #include <curl/curl.h>
 #include <json-glib/json-glib.h>
 #include <libxml/parser.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <unistd.h>
 
 DT_MODULE(2)
@@ -248,8 +248,7 @@ static size_t curl_write_data_cb(void *ptr, size_t size, size_t nmemb, void *dat
   GString *string = (GString *)data;
   g_string_append_len(string, ptr, size * nmemb);
 #if gphoto_EXTRA_VERBOSE == TRUE
-  if(strlen(string->str)<1500)
-  g_printf("server reply: %s\n", string->str);
+  if(strlen(string->str) < 1500) g_printf("server reply: %s\n", string->str);
 #endif
   return size * nmemb;
 }
@@ -305,7 +304,7 @@ static JsonObject *gphoto_query_get(dt_gphoto_context_t *ctx, const gchar *url, 
   // send the request
   GString *response = g_string_new("");
 
-  dt_curl_init(ctx->curl_ctx, strstr(url,"v1/albums")==NULL?gphoto_EXTRA_VERBOSE:FALSE);
+  dt_curl_init(ctx->curl_ctx, strstr(url, "v1/albums") == NULL ? gphoto_EXTRA_VERBOSE : FALSE);
 
   args = _gphoto_query_add_arguments(args, "alt", "json");
   args = _gphoto_query_add_arguments(args, "access_token", ctx->token);
@@ -314,10 +313,10 @@ static JsonObject *gphoto_query_get(dt_gphoto_context_t *ctx, const gchar *url, 
 
   GList *a = args;
 
-  while (a)
+  while(a)
   {
     _curl_args_t *ca = (_curl_args_t *)a->data;
-    if(a==args)
+    if(a == args)
       g_string_append(gurl, "?");
     else
       g_string_append(gurl, "&");
@@ -354,8 +353,8 @@ static JsonObject *gphoto_query_get(dt_gphoto_context_t *ctx, const gchar *url, 
  * perform a POST request on google photo api
  * @returns NULL if the request fails, or a JsonObject of the reply
  */
-static JsonObject *gphoto_query_post(dt_gphoto_context_t *ctx, const gchar *url,
-                                     struct curl_slist *headers, GList *args, gchar *body, int size)
+static JsonObject *gphoto_query_post(dt_gphoto_context_t *ctx, const gchar *url, struct curl_slist *headers,
+                                     GList *args, gchar *body, int size)
 {
   g_return_val_if_fail(ctx != NULL, NULL);
   g_return_val_if_fail(ctx->token != NULL, NULL);
@@ -467,8 +466,8 @@ static dt_gphoto_album_t *_json_new_album(JsonObject *obj)
       const char *id = json_object_get_string_member(obj, "id");
       const char *name = json_object_get_string_member(obj, "title");
       const int size = json_object_has_member(obj, "mediaItemsCount")
-        ? json_object_get_int_member(obj, "mediaItemsCount")
-        : 0;
+                           ? json_object_get_int_member(obj, "mediaItemsCount")
+                           : 0;
 
       if(id == NULL || name == NULL)
       {
@@ -483,7 +482,7 @@ static dt_gphoto_album_t *_json_new_album(JsonObject *obj)
       return album;
     }
 
- error:
+error:
   return NULL;
 }
 
@@ -499,7 +498,7 @@ static GList *gphoto_get_album_list(dt_gphoto_context_t *ctx, gboolean *ok)
 
   GList *args = NULL;
 
-//  args = _gphoto_query_add_arguments(args, "pageSize", "50"); // max for list albums
+  //  args = _gphoto_query_add_arguments(args, "pageSize", "50"); // max for list albums
 
   JsonObject *reply = gphoto_query_get(ctx, GOOGLE_GPHOTO "v1/albums", NULL);
   if(reply == NULL) goto error;
@@ -514,13 +513,12 @@ static GList *gphoto_get_album_list(dt_gphoto_context_t *ctx, gboolean *ok)
       if(obj == NULL) continue;
 
       dt_gphoto_album_t *album = _json_new_album(obj);
-      if(album)
-        album_list = g_list_append(album_list, album);
+      if(album) album_list = g_list_append(album_list, album);
     }
 
     args = NULL;
 
-//    args = _gphoto_query_add_arguments(args, "pageSize", "50"); // max for list albums
+    //    args = _gphoto_query_add_arguments(args, "pageSize", "50"); // max for list albums
 
     if(json_object_has_member(reply, "nextPageToken"))
       args = _gphoto_query_add_arguments(args, "pageToken", json_object_get_string_member(reply, "nextPageToken"));
@@ -573,7 +571,7 @@ static const gchar *gphoto_create_album(dt_storage_gphoto_gui_data_t *ui, dt_gph
 
   g_free(jbody);
 
-  return album?album->id:NULL;
+  return album ? album->id : NULL;
 }
 
 /**
@@ -619,13 +617,16 @@ static const gchar *gphoto_upload_photo_to_album(dt_gphoto_context_t *ctx, gchar
 
   headers = curl_slist_append(headers, "Content-type: application/json");
 
-  gchar *jbody = dt_util_dstrcat(NULL, "{ \"albumId\": \"%s\", "
-                                         "\"newMediaItems\": [ "
-                                           "{ \"description\": \"%s\", "
-                                           "  \"simpleMediaItem\": { \"uploadToken\": \"%s\"} "
-                                           "} ] }", albumid, summary, upload_token);
+  gchar *jbody = dt_util_dstrcat(NULL,
+                                 "{ \"albumId\": \"%s\", "
+                                 "\"newMediaItems\": [ "
+                                 "{ \"description\": \"%s\", "
+                                 "  \"simpleMediaItem\": { \"uploadToken\": \"%s\"} "
+                                 "} ] }",
+                                 albumid, summary, upload_token);
 
-  response = gphoto_query_post(ctx, GOOGLE_GPHOTO "v1/mediaItems:batchCreate", headers, NULL, jbody, strlen(jbody));
+  response
+      = gphoto_query_post(ctx, GOOGLE_GPHOTO "v1/mediaItems:batchCreate", headers, NULL, jbody, strlen(jbody));
 
   g_free(jbody);
 
@@ -644,8 +645,7 @@ static const gchar *gphoto_upload_photo_to_album(dt_gphoto_context_t *ctx, gchar
         o = json_node_get_object(json_object_get_member(o, "status"));
         if(json_object_has_member(o, "message"))
         {
-          if(g_strcmp0(json_object_get_string_member(o, "message"), "OK"))
-            return NULL;
+          if(g_strcmp0(json_object_get_string_member(o, "message"), "OK")) return NULL;
         }
         else
           return NULL;
@@ -656,8 +656,7 @@ static const gchar *gphoto_upload_photo_to_album(dt_gphoto_context_t *ctx, gchar
       if(json_object_has_member(root, "mediaItem"))
       {
         o = json_node_get_object(json_object_get_member(root, "mediaItem"));
-        if(json_object_has_member(o, "id"))
-          photo_id = g_strdup(json_object_get_string_member(o, "id"));
+        if(json_object_has_member(o, "id")) photo_id = g_strdup(json_object_get_string_member(o, "id"));
       }
     }
   }
@@ -739,15 +738,14 @@ static int gphoto_get_user_auth_token(dt_storage_gphoto_gui_data_t *ui)
   ///////////// open the authentication url in a browser
   GError *error = NULL;
   gchar *params = NULL;
-  params = dt_util_dstrcat(params,
-                           GOOGLE_WS_BASE_URL
-                           "o/oauth2/v2/auth?"
-                           "client_id=%s&redirect_uri=urn:ietf:wg:oauth:2.0:oob"
-                           "&scope=" GOOGLE_API_BASE_URL "auth/photoslibrary "
-                           GOOGLE_API_BASE_URL "auth/userinfo.profile "
-                           GOOGLE_API_BASE_URL "auth/userinfo.email"
-                           "&response_type=code&access_type=offline",
-                           ui->gphoto_api->google_client_id);
+  params
+      = dt_util_dstrcat(params,
+                        GOOGLE_WS_BASE_URL "o/oauth2/v2/auth?"
+                                           "client_id=%s&redirect_uri=urn:ietf:wg:oauth:2.0:oob"
+                                           "&scope=" GOOGLE_API_BASE_URL "auth/photoslibrary " GOOGLE_API_BASE_URL
+                                           "auth/userinfo.profile " GOOGLE_API_BASE_URL "auth/userinfo.email"
+                                           "&response_type=code&access_type=offline",
+                        ui->gphoto_api->google_client_id);
 
   if(!gtk_show_uri(gdk_screen_get_default(), params, gtk_get_current_event_time(), &error))
   {
@@ -763,9 +761,9 @@ static int gphoto_get_user_auth_token(dt_storage_gphoto_gui_data_t *ui)
                          "and click the OK button once you are done.");
 
   GtkWidget *window = dt_ui_main_window(darktable.gui->ui);
-  GtkDialog *gphoto_auth_dialog = GTK_DIALOG(
-      gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION,
-                             GTK_BUTTONS_OK_CANCEL, _("google authentication")));
+  GtkDialog *gphoto_auth_dialog
+      = GTK_DIALOG(gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION,
+                                          GTK_BUTTONS_OK_CANCEL, _("google authentication")));
 #ifdef GDK_WINDOWING_QUARTZ
   dt_osx_disallow_fullscreen(GTK_WIDGET(gphoto_auth_dialog));
 #endif
@@ -776,8 +774,7 @@ static int gphoto_get_user_auth_token(dt_storage_gphoto_gui_data_t *ui)
   gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(gtk_label_new(_("verification code:"))), FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(entry), TRUE, TRUE, 0);
 
-  GtkWidget *gphotoauthdialog_vbox
-      = gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(gphoto_auth_dialog));
+  GtkWidget *gphotoauthdialog_vbox = gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(gphoto_auth_dialog));
   gtk_box_pack_end(GTK_BOX(gphotoauthdialog_vbox), hbox, TRUE, TRUE, 0);
 
   gtk_widget_show_all(GTK_WIDGET(gphoto_auth_dialog));
@@ -808,14 +805,14 @@ static int gphoto_get_user_auth_token(dt_storage_gphoto_gui_data_t *ui)
   gtk_widget_destroy(GTK_WIDGET(gphoto_auth_dialog));
   g_free(params);
 
-  if(result == GTK_RESPONSE_CANCEL)
-    return 1;
+  if(result == GTK_RESPONSE_CANCEL) return 1;
 
   // Interchange now the authorization_code for an access_token and refresh_token
   JsonObject *reply;
 
   params = NULL;
-  params = dt_util_dstrcat(params, "code=%s&client_id=%s&client_secret=%s"
+  params = dt_util_dstrcat(params,
+                           "code=%s&client_id=%s&client_secret=%s"
                            "&redirect_uri=" GOOGLE_URI "&grant_type=authorization_code",
                            token, ui->gphoto_api->google_client_id, ui->gphoto_api->google_client_secret);
 
@@ -937,8 +934,8 @@ static void ui_refresh_users(dt_storage_gphoto_gui_data_t *ui)
 
   if(g_slist_length(accountlist) == 0)
   {
-    gtk_list_store_set(list_store, &iter, COMBO_USER_MODEL_NAME_COL, _("new account"),
-                       COMBO_USER_MODEL_TOKEN_COL, NULL, COMBO_USER_MODEL_ID_COL, NULL, -1);
+    gtk_list_store_set(list_store, &iter, COMBO_USER_MODEL_NAME_COL, _("new account"), COMBO_USER_MODEL_TOKEN_COL,
+                       NULL, COMBO_USER_MODEL_ID_COL, NULL, -1);
   }
   else
   {
@@ -996,7 +993,7 @@ static void ui_refresh_albums(dt_storage_gphoto_gui_data_t *ui)
 
   gtk_widget_show_all(GTK_WIDGET(ui->combo_album));
 
-  if (albumList != NULL && current_index > 0)
+  if(albumList != NULL && current_index > 0)
   {
     gtk_combo_box_set_active(ui->combo_album, current_index);
     gtk_widget_set_no_show_all(GTK_WIDGET(ui->hbox_album), TRUE);
@@ -1084,8 +1081,7 @@ static gboolean ui_authenticate(dt_storage_gphoto_gui_data_t *ui)
   gtk_combo_box_get_active_iter(ui->combo_username, &iter);
   GtkTreeModel *accountModel = gtk_combo_box_get_model(ui->combo_username);
   gtk_tree_model_get(accountModel, &iter, COMBO_USER_MODEL_TOKEN_COL, &uiselectedaccounttoken, -1);
-  gtk_tree_model_get(accountModel, &iter, COMBO_USER_MODEL_REFRESH_TOKEN_COL, &uiselectedaccountrefreshtoken,
-                     -1);
+  gtk_tree_model_get(accountModel, &iter, COMBO_USER_MODEL_REFRESH_TOKEN_COL, &uiselectedaccountrefreshtoken, -1);
   gtk_tree_model_get(accountModel, &iter, COMBO_USER_MODEL_ID_COL, &uiselecteduserid, -1);
 
   if(ctx->token != NULL)
@@ -1146,8 +1142,8 @@ static gboolean ui_authenticate(dt_storage_gphoto_gui_data_t *ui)
         if(g_strcmp0(uid, accountinfo->id) == 0)
         {
           gtk_list_store_set(model, &iter, COMBO_USER_MODEL_NAME_COL, accountinfo->username,
-                             COMBO_USER_MODEL_TOKEN_COL, accountinfo->token,
-                             COMBO_USER_MODEL_REFRESH_TOKEN_COL, accountinfo->refresh_token, -1);
+                             COMBO_USER_MODEL_TOKEN_COL, accountinfo->token, COMBO_USER_MODEL_REFRESH_TOKEN_COL,
+                             accountinfo->refresh_token, -1);
           updated = TRUE;
           break;
         }
@@ -1298,8 +1294,7 @@ void gui_init(struct dt_imageio_module_storage_t *self)
 
   // connect buttons to signals
   g_signal_connect(G_OBJECT(ui->button_login), "clicked", G_CALLBACK(ui_login_clicked), (gpointer)ui);
-  g_signal_connect(G_OBJECT(ui->combo_username), "changed", G_CALLBACK(ui_combo_username_changed),
-                   (gpointer)ui);
+  g_signal_connect(G_OBJECT(ui->combo_username), "changed", G_CALLBACK(ui_combo_username_changed), (gpointer)ui);
   g_signal_connect(G_OBJECT(ui->combo_album), "changed", G_CALLBACK(ui_combo_album_changed), (gpointer)ui);
 
   g_object_unref(model_username);
@@ -1369,8 +1364,9 @@ int store(dt_imageio_module_storage_t *self, struct dt_imageio_module_data_t *sd
 
   dt_image_cache_read_release(darktable.image_cache, img);
 
-  if(dt_imageio_export(imgid, fname, format, fdata, high_quality, upscale, FALSE, icc_type, icc_filename, icc_intent,
-                       self, sdata, num, total) != 0)
+  if(dt_imageio_export(imgid, fname, format, fdata, high_quality, upscale, FALSE, icc_type, icc_filename,
+                       icc_intent, self, sdata, num, total)
+     != 0)
   {
     g_printerr("[gphoto] could not export to file: `%s'!\n", fname);
     dt_control_log(_("could not export to file `%s'!"), fname);
@@ -1386,7 +1382,7 @@ int store(dt_imageio_module_storage_t *self, struct dt_imageio_module_data_t *sd
       result = 0;
       goto cleanup;
     }
-    const gchar *album_id  = gphoto_create_album(ui, ctx, ctx->album_title);
+    const gchar *album_id = gphoto_create_album(ui, ctx, ctx->album_title);
     if(album_id == NULL)
     {
       dt_control_log(_("unable to create album"));
@@ -1412,7 +1408,8 @@ cleanup:
   if(result)
   {
     // this makes sense only if the export was successful
-    dt_control_log(ngettext("%d/%d exported to google photos album", "%d/%d exported to google photos album", num), num, total);
+    dt_control_log(ngettext("%d/%d exported to google photos album", "%d/%d exported to google photos album", num),
+                   num, total);
   }
   return 0;
 }

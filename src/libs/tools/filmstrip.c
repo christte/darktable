@@ -154,7 +154,7 @@ const char *name(dt_lib_module_t *self)
 
 const char **views(dt_lib_module_t *self)
 {
-  static const char *v[] = {"lighttable", "darkroom", "tethering", "map", "print", NULL};
+  static const char *v[] = { "lighttable", "darkroom", "tethering", "map", "print", NULL };
   return v;
 }
 
@@ -526,9 +526,8 @@ static gboolean _lib_filmstrip_motion_notify_callback(GtkWidget *w, GdkEventMoti
     const float end_pos = (strip->thumb_size * 85) / 100;
     const float start_pos = (strip->thumb_size * 10) / 100;
 
-    if (strip->last_mouse_over_thumb == -1 || strip->last_mouse_over_thumb != mouse_over_thumb
-        || (y_offset > end_pos || y_offset < start_pos)
-        || (x_offset > end_pos || x_offset < start_pos))
+    if(strip->last_mouse_over_thumb == -1 || strip->last_mouse_over_thumb != mouse_over_thumb
+       || (y_offset > end_pos || y_offset < start_pos) || (x_offset > end_pos || x_offset < start_pos))
     {
       strip->last_mouse_over_thumb = mouse_over_thumb;
       do_redraw = TRUE;
@@ -716,8 +715,7 @@ static gboolean _lib_filmstrip_draw_callback(GtkWidget *widget, cairo_t *wcr, gp
   // a resize of the filmstrip is done.
   if(!strip->surface)
   {
-    strip->surface
-      = dt_cairo_image_surface_create(CAIRO_FORMAT_ARGB32, allocation.width, allocation.height);
+    strip->surface = dt_cairo_image_surface_create(CAIRO_FORMAT_ARGB32, allocation.width, allocation.height);
     strip->force_expose_all = TRUE;
     strip->panel_width = width;
   }
@@ -731,7 +729,7 @@ static gboolean _lib_filmstrip_draw_callback(GtkWidget *widget, cairo_t *wcr, gp
   strip->image_over = DT_VIEW_DESERT;
 
   /* fill background */
-  if (strip->mouse_over_id == -1 || strip->force_expose_all)
+  if(strip->mouse_over_id == -1 || strip->force_expose_all)
   {
     strip->force_expose_all = TRUE;
     strip->last_exposed_id = -1;
@@ -765,8 +763,8 @@ static gboolean _lib_filmstrip_draw_callback(GtkWidget *widget, cairo_t *wcr, gp
   const dt_collection_sort_t current_sort = dt_collection_get_sort_field(darktable.collection);
   const gboolean reverse = dt_collection_get_sort_descending(darktable.collection);
 
-  // we disable the shuffle sort on the filmstrip as this cannot be work with the current implementation. On each redraw
-  // we get a new order for the collection.
+  // we disable the shuffle sort on the filmstrip as this cannot be work with the current implementation. On each
+  // redraw we get a new order for the collection.
   if(current_sort == DT_COLLECTION_SORT_SHUFFLE)
   {
     dt_collection_set_sort(darktable.collection, DT_COLLECTION_SORT_ID, reverse);
@@ -834,16 +832,13 @@ static gboolean _lib_filmstrip_draw_callback(GtkWidget *widget, cairo_t *wcr, gp
       cairo_matrix_t m;
       cairo_get_matrix(cr, &m);
 
-      if (id == strip->mouse_over_id
-          || strip->force_expose_all
-          || id == before_last_exposed_id
-          || id == initial_mouse_over_id
-          || g_hash_table_contains(strip->thumbs_table, (gpointer)&id))
+      if(id == strip->mouse_over_id || strip->force_expose_all || id == before_last_exposed_id
+         || id == initial_mouse_over_id || g_hash_table_contains(strip->thumbs_table, (gpointer)&id))
       {
         if(!strip->force_expose_all && id == mouse_over_id) strip->last_exposed_id = id;
 
-        const int thumb_missed = dt_view_image_expose
-          (&(strip->image_over), id, cr, wd, ht, max_cols, img_pointerx, img_pointery, FALSE, FALSE);
+        const int thumb_missed = dt_view_image_expose(&(strip->image_over), id, cr, wd, ht, max_cols, img_pointerx,
+                                                      img_pointery, FALSE, FALSE);
 
         // if thumb is missing, record it for expose int next round
         if(thumb_missed)
@@ -963,7 +958,8 @@ static gboolean _lib_filmstrip_copy_history_key_accel_callback(GtkAccelGroup *ac
   strip->dg.selops = NULL;
 
   /* check if images is currently loaded in darkroom */
-  if(!_is_on_lighttable() && dt_dev_is_current_image(darktable.develop, mouse_over_id)) dt_dev_write_history(darktable.develop);
+  if(!_is_on_lighttable() && dt_dev_is_current_image(darktable.develop, mouse_over_id))
+    dt_dev_write_history(darktable.develop);
   return TRUE;
 }
 
@@ -1055,7 +1051,8 @@ static gboolean _lib_filmstrip_duplicate_image_key_accel_callback(GtkAccelGroup 
   if(mouse_over_id <= 0) return FALSE;
 
   /* check if images is currently loaded in darkroom */
-  if(!_is_on_lighttable() && dt_dev_is_current_image(darktable.develop, mouse_over_id)) dt_dev_write_history(darktable.develop);
+  if(!_is_on_lighttable() && dt_dev_is_current_image(darktable.develop, mouse_over_id))
+    dt_dev_write_history(darktable.develop);
 
   const int32_t newimgid = dt_image_duplicate(mouse_over_id);
   if(newimgid != -1) dt_history_copy_and_paste_on_image(mouse_over_id, newimgid, FALSE, NULL);
@@ -1091,7 +1088,7 @@ static gboolean _lib_filmstrip_ratings_key_accel_callback(GtkAccelGroup *accel_g
       /* get image from cache */
 
       const int32_t activated_image = darktable.view_manager->proxy.filmstrip.activated_image(
-        darktable.view_manager->proxy.filmstrip.module);
+          darktable.view_manager->proxy.filmstrip.module);
 
       const int32_t image_id = mouse_over_id == -1 ? activated_image : mouse_over_id;
 

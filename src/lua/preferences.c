@@ -460,7 +460,7 @@ static void update_widget_enum(pref_element* cur_elt,GtkWidget* dialog,GtkWidget
   g_signal_connect(G_OBJECT(labelev), "button-press-event", G_CALLBACK(reset_widget_enum), cur_elt);
   g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(response_callback_enum), cur_elt);
   gtk_combo_box_set_active(GTK_COMBO_BOX(cur_elt->widget), 0);
-  char*value = dt_conf_get_string(pref_name);
+  char *value = dt_conf_get_string(pref_name);
   do {
     char * active_entry = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(cur_elt->widget));
     if(!active_entry)

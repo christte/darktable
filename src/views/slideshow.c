@@ -107,8 +107,8 @@ static const char *mime(dt_imageio_module_data_t *data)
 }
 
 static int write_image(dt_imageio_module_data_t *datai, const char *filename, const void *in,
-                       dt_colorspaces_color_profile_type_t over_type, const char *over_filename,
-                       void *exif, int exif_len, int imgid, int num, int total, dt_dev_pixelpipe_t *pipe)
+                       dt_colorspaces_color_profile_type_t over_type, const char *over_filename, void *exif,
+                       int exif_len, int imgid, int num, int total, dt_dev_pixelpipe_t *pipe)
 {
   dt_slideshow_format_t *data = (dt_slideshow_format_t *)datai;
   dt_pthread_mutex_lock(&data->d->lock);
@@ -188,8 +188,9 @@ static int process_next_image(dt_slideshow_t *d)
   const gboolean high_quality = dt_conf_get_bool("plugins/slideshow/high_quality");
   if(id)
     // the flags are: ignore exif, display byteorder, high quality, upscale, thumbnail
-    dt_imageio_export_with_flags(id, "unused", &buf, (dt_imageio_module_data_t *)&dat, TRUE, TRUE, high_quality, TRUE,
-                                 FALSE, NULL, FALSE, DT_COLORSPACE_DISPLAY, NULL, DT_INTENT_LAST, NULL, NULL, 1, 1);
+    dt_imageio_export_with_flags(id, "unused", &buf, (dt_imageio_module_data_t *)&dat, TRUE, TRUE, high_quality,
+                                 TRUE, FALSE, NULL, FALSE, DT_COLORSPACE_DISPLAY, NULL, DT_INTENT_LAST, NULL, NULL,
+                                 1, 1);
   return 0;
 }
 
@@ -515,14 +516,16 @@ int key_pressed(dt_view_t *self, guint key, guint state)
   else if(key == GDK_KEY_Right || key == GDK_KEY_KP_Add)
   {
     d->delay = CLAMP(d->delay + 1, 1, 60);
-    dt_control_log(ngettext("slideshow delay set to %d second", "slideshow delay set to %d seconds", d->delay), d->delay);
+    dt_control_log(ngettext("slideshow delay set to %d second", "slideshow delay set to %d seconds", d->delay),
+                   d->delay);
     dt_conf_set_int("slideshow_delay", d->delay);
     return 0;
   }
   else if(key == GDK_KEY_Left || key == GDK_KEY_KP_Subtract)
   {
     d->delay = CLAMP(d->delay - 1, 1, 60);
-    dt_control_log(ngettext("slideshow delay set to %d second", "slideshow delay set to %d seconds", d->delay), d->delay);
+    dt_control_log(ngettext("slideshow delay set to %d second", "slideshow delay set to %d seconds", d->delay),
+                   d->delay);
     dt_conf_set_int("slideshow_delay", d->delay);
     return 0;
   }

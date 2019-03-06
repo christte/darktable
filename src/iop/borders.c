@@ -602,7 +602,7 @@ static int _iop_color_picker_get_set(dt_iop_module_t *self, GtkWidget *button)
   else if(button == GTK_WIDGET(g->border_picker))
     g->color_picker.current_picker = DT_BORDERS_BORDER;
 
-  if (current_picker == g->color_picker.current_picker)
+  if(current_picker == g->color_picker.current_picker)
     return DT_COLOR_PICKER_ALREADY_SELECTED;
   else
     return g->color_picker.current_picker;
@@ -1064,7 +1064,8 @@ void gui_init(struct dt_iop_module_t *self)
   g->border_picker = GTK_TOGGLE_BUTTON(dtgtk_togglebutton_new(dtgtk_cairo_paint_colorpicker, CPF_STYLE_FLAT, NULL));
   gtk_widget_set_tooltip_text(GTK_WIDGET(g->border_picker), _("pick border color from image"));
   gtk_widget_set_size_request(GTK_WIDGET(g->border_picker), DT_PIXEL_APPLY_DPI(24), DT_PIXEL_APPLY_DPI(24));
-  g_signal_connect(G_OBJECT(g->border_picker), "toggled", G_CALLBACK(dt_iop_color_picker_callback), &g->color_picker);
+  g_signal_connect(G_OBJECT(g->border_picker), "toggled", G_CALLBACK(dt_iop_color_picker_callback),
+                   &g->color_picker);
 
   gtk_box_pack_start(GTK_BOX(box), label, TRUE, TRUE, 0);
   gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(g->colorpick), FALSE, TRUE, 0);
@@ -1082,19 +1083,16 @@ void gui_init(struct dt_iop_module_t *self)
   g->frame_picker = GTK_TOGGLE_BUTTON(dtgtk_togglebutton_new(dtgtk_cairo_paint_colorpicker, CPF_STYLE_FLAT, NULL));
   gtk_widget_set_tooltip_text(GTK_WIDGET(g->frame_picker), _("pick frame line color from image"));
   gtk_widget_set_size_request(GTK_WIDGET(g->frame_picker), DT_PIXEL_APPLY_DPI(24), DT_PIXEL_APPLY_DPI(24));
-  g_signal_connect(G_OBJECT(g->frame_picker), "toggled", G_CALLBACK(dt_iop_color_picker_callback), &g->color_picker);
+  g_signal_connect(G_OBJECT(g->frame_picker), "toggled", G_CALLBACK(dt_iop_color_picker_callback),
+                   &g->color_picker);
 
   gtk_box_pack_start(GTK_BOX(box), label, TRUE, TRUE, 0);
   gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(g->frame_colorpick), FALSE, TRUE, 0);
   gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(g->frame_picker), FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(self->widget), box, TRUE, TRUE, 0);
 
-  dt_iop_init_picker(&g->color_picker,
-              self,
-              DT_COLOR_PICKER_POINT,
-              _iop_color_picker_get_set,
-              _iop_color_picker_apply,
-              _iop_color_picker_update);
+  dt_iop_init_picker(&g->color_picker, self, DT_COLOR_PICKER_POINT, _iop_color_picker_get_set,
+                     _iop_color_picker_apply, _iop_color_picker_update);
 }
 
 

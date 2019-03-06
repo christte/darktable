@@ -144,8 +144,12 @@ static inline int _read_planar_f(tiff_t *t)
 static inline int _read_planar_8_Lab(tiff_t *t, uint16_t photometric)
 {
   const cmsHPROFILE Lab = dt_colorspaces_get_profile(DT_COLORSPACE_LAB, "", DT_PROFILE_DIRECTION_ANY)->profile;
-  const cmsHPROFILE output_profile = dt_colorspaces_get_profile(LAB_CONVERSION_PROFILE, "", DT_PROFILE_DIRECTION_OUT | DT_PROFILE_DIRECTION_DISPLAY)->profile;
-  const cmsHTRANSFORM xform = cmsCreateTransform(Lab, TYPE_LabA_FLT, output_profile, TYPE_RGBA_FLT, INTENT_PERCEPTUAL, 0);
+  const cmsHPROFILE output_profile
+      = dt_colorspaces_get_profile(LAB_CONVERSION_PROFILE, "",
+                                   DT_PROFILE_DIRECTION_OUT | DT_PROFILE_DIRECTION_DISPLAY)
+            ->profile;
+  const cmsHTRANSFORM xform
+      = cmsCreateTransform(Lab, TYPE_LabA_FLT, output_profile, TYPE_RGBA_FLT, INTENT_PERCEPTUAL, 0);
 
   for(uint32_t row = 0; row < t->height; row++)
   {
@@ -158,7 +162,7 @@ static inline int _read_planar_8_Lab(tiff_t *t, uint16_t photometric)
 
     for(uint32_t i = 0; i < t->width; i++, in += t->spp, out += 4)
     {
-      out[0] = ((float)in[0]) * (100.0f/255.0f);
+      out[0] = ((float)in[0]) * (100.0f / 255.0f);
 
       if(photometric == PHOTOMETRIC_CIELAB)
       {
@@ -190,8 +194,12 @@ failed:
 static inline int _read_planar_16_Lab(tiff_t *t, uint16_t photometric)
 {
   const cmsHPROFILE Lab = dt_colorspaces_get_profile(DT_COLORSPACE_LAB, "", DT_PROFILE_DIRECTION_ANY)->profile;
-  const cmsHPROFILE output_profile = dt_colorspaces_get_profile(LAB_CONVERSION_PROFILE, "", DT_PROFILE_DIRECTION_OUT | DT_PROFILE_DIRECTION_DISPLAY)->profile;
-  const cmsHTRANSFORM xform = cmsCreateTransform(Lab, TYPE_LabA_FLT, output_profile, TYPE_RGBA_FLT, INTENT_PERCEPTUAL, 0);
+  const cmsHPROFILE output_profile
+      = dt_colorspaces_get_profile(LAB_CONVERSION_PROFILE, "",
+                                   DT_PROFILE_DIRECTION_OUT | DT_PROFILE_DIRECTION_DISPLAY)
+            ->profile;
+  const cmsHTRANSFORM xform
+      = cmsCreateTransform(Lab, TYPE_LabA_FLT, output_profile, TYPE_RGBA_FLT, INTENT_PERCEPTUAL, 0);
 
   for(uint32_t row = 0; row < t->height; row++)
   {
@@ -204,7 +212,7 @@ static inline int _read_planar_16_Lab(tiff_t *t, uint16_t photometric)
 
     for(uint32_t i = 0; i < t->width; i++, in += t->spp, out += 4)
     {
-      out[0] = ((float)in[0]) * (100.0f/65535.0f);
+      out[0] = ((float)in[0]) * (100.0f / 65535.0f);
 
       if(photometric == PHOTOMETRIC_CIELAB)
       {
@@ -339,9 +347,11 @@ dt_imageio_retval_t dt_imageio_open_tiff(dt_image_t *img, const char *filename, 
 
   int ok = 1;
 
-  if((photometric == PHOTOMETRIC_CIELAB || photometric == PHOTOMETRIC_ICCLAB) && t.bpp == 8 && t.sampleformat == SAMPLEFORMAT_UINT && config == PLANARCONFIG_CONTIG)
+  if((photometric == PHOTOMETRIC_CIELAB || photometric == PHOTOMETRIC_ICCLAB) && t.bpp == 8
+     && t.sampleformat == SAMPLEFORMAT_UINT && config == PLANARCONFIG_CONTIG)
     ok = _read_planar_8_Lab(&t, photometric);
-  else if((photometric == PHOTOMETRIC_CIELAB || photometric == PHOTOMETRIC_ICCLAB) && t.bpp == 16 && t.sampleformat == SAMPLEFORMAT_UINT && config == PLANARCONFIG_CONTIG)
+  else if((photometric == PHOTOMETRIC_CIELAB || photometric == PHOTOMETRIC_ICCLAB) && t.bpp == 16
+          && t.sampleformat == SAMPLEFORMAT_UINT && config == PLANARCONFIG_CONTIG)
     ok = _read_planar_16_Lab(&t, photometric);
   else if(t.bpp == 8 && t.sampleformat == SAMPLEFORMAT_UINT && config == PLANARCONFIG_CONTIG)
     ok = _read_planar_8(&t);
@@ -384,7 +394,9 @@ int dt_imageio_tiff_read_profile(const char *filename, uint8_t **out)
 
   if(photometric == PHOTOMETRIC_CIELAB || photometric == PHOTOMETRIC_ICCLAB)
   {
-    profile = dt_colorspaces_get_profile(LAB_CONVERSION_PROFILE, "", DT_PROFILE_DIRECTION_OUT | DT_PROFILE_DIRECTION_DISPLAY)->profile;
+    profile = dt_colorspaces_get_profile(LAB_CONVERSION_PROFILE, "",
+                                         DT_PROFILE_DIRECTION_OUT | DT_PROFILE_DIRECTION_DISPLAY)
+                  ->profile;
 
     cmsSaveProfileToMem(profile, 0, &profile_len);
     if(profile_len > 0)

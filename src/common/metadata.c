@@ -26,14 +26,15 @@
 typedef struct dt_undo_metadata_t
 {
   int imgid;
-  GList *before;      // list of key/value before
-  gint keyid;         // new value (key, value)
+  GList *before; // list of key/value before
+  gint keyid;    // new value (key, value)
   gchar *value;
 } dt_undo_metadata_t;
 
 static void _metadata_set_xmp(int id, const gint keyid, const char *value, gboolean undo_actif);
 
-static void _pop_undo(gpointer user_data, const dt_undo_type_t type, dt_undo_data_t *data, const dt_undo_action_t action)
+static void _pop_undo(gpointer user_data, const dt_undo_type_t type, dt_undo_data_t *data,
+                      const dt_undo_action_t action)
 {
   if(type == DT_UNDO_METADATA)
   {
@@ -75,15 +76,15 @@ static void _pop_undo(gpointer user_data, const dt_undo_type_t type, dt_undo_dat
 static dt_undo_metadata_t *_get_metadata(const int imgid, const gint keyid, const gchar *value)
 {
   dt_undo_metadata_t *result = (dt_undo_metadata_t *)malloc(sizeof(dt_undo_metadata_t));
-  result->imgid  = imgid;
+  result->imgid = imgid;
   result->before = NULL;
-  result->keyid  = keyid;
-  result->value  = g_strdup(value);
+  result->keyid = keyid;
+  result->value = g_strdup(value);
 
   sqlite3_stmt *stmt;
 
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "SELECT key, value FROM main.meta_data WHERE id=?1", -1, &stmt, NULL);
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT key, value FROM main.meta_data WHERE id=?1",
+                              -1, &stmt, NULL);
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
 
   while(sqlite3_step(stmt) == SQLITE_ROW)
@@ -103,7 +104,8 @@ GList *_get_metadata_selection(const gint keyid, const gchar *value)
   GList *result = NULL;
 
   sqlite3_stmt *stmt;
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT imgid FROM main.selected_images", -1, &stmt, NULL);
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT imgid FROM main.selected_images", -1, &stmt,
+                              NULL);
 
   while(sqlite3_step(stmt) == SQLITE_ROW)
   {
@@ -186,7 +188,8 @@ static void _metadata_set_xmp(const int id, const gint keyid, const char *value,
 
   if(undo_actif)
   {
-    dt_undo_record(darktable.undo, NULL, DT_UNDO_METADATA, (dt_undo_data_t *)undo, &_pop_undo, _metadata_undo_data_free);
+    dt_undo_record(darktable.undo, NULL, DT_UNDO_METADATA, (dt_undo_data_t *)undo, &_pop_undo,
+                   _metadata_undo_data_free);
     dt_undo_end_group(darktable.undo);
   }
 }

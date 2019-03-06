@@ -21,8 +21,8 @@
 #pragma once
 
 #ifdef __SSE2__
-#include "common/sse.h"
 #include "common/math.h"
+#include "common/sse.h"
 #include <xmmintrin.h>
 
 static inline __m128 lab_f_inv_m(const __m128 x)

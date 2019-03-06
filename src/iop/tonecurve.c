@@ -26,18 +26,18 @@
 #include <string.h>
 
 #include "bauhaus/bauhaus.h"
-#include "common/opencl.h"
 #include "common/colorspaces_inline_conversions.h"
+#include "common/opencl.h"
 #include "control/control.h"
 #include "develop/develop.h"
 #include "develop/imageop.h"
 #include "develop/imageop_math.h"
 #include "dtgtk/drawingarea.h"
 #include "dtgtk/paint.h"
+#include "gui/color_picker_proxy.h"
 #include "gui/draw.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
-#include "gui/color_picker_proxy.h"
 #include "iop/iop_api.h"
 #include "libs/colorpicker.h"
 
@@ -794,7 +794,7 @@ void init_global(dt_iop_module_so_t *module)
       = (dt_iop_tonecurve_global_data_t *)malloc(sizeof(dt_iop_tonecurve_global_data_t));
   module->data = gd;
   gd->kernel_tonecurve = dt_opencl_create_kernel(program, "tonecurve");
-  for(int k=0; k<3; k++)
+  for(int k = 0; k < 3; k++)
   {
     gd->picked_color[k] = .0f;
     gd->picked_color_min[k] = .0f;
@@ -997,7 +997,7 @@ static void _iop_color_picker_apply(dt_iop_module_t *self)
 {
   dt_iop_tonecurve_global_data_t *gd = (dt_iop_tonecurve_global_data_t *)self->data;
 
-  for(int k=0; k<3; k++)
+  for(int k = 0; k < 3; k++)
   {
     gd->picked_color[k] = self->picked_color[k];
     gd->picked_color_min[k] = self->picked_color_min[k];
@@ -1261,7 +1261,8 @@ void gui_init(struct dt_iop_module_t *self)
   g_signal_connect(G_OBJECT(c->area), "leave-notify-event", G_CALLBACK(dt_iop_tonecurve_leave_notify), self);
   g_signal_connect(G_OBJECT(c->area), "enter-notify-event", G_CALLBACK(dt_iop_tonecurve_enter_notify), self);
   g_signal_connect(G_OBJECT(c->area), "configure-event", G_CALLBACK(area_resized), self);
-  g_signal_connect(G_OBJECT(tb), "button-press-event", G_CALLBACK(dt_iop_color_picker_callback_button_press), &c->color_picker);
+  g_signal_connect(G_OBJECT(tb), "button-press-event", G_CALLBACK(dt_iop_color_picker_callback_button_press),
+                   &c->color_picker);
   g_signal_connect(G_OBJECT(c->area), "scroll-event", G_CALLBACK(_scrolled), self);
   g_signal_connect(G_OBJECT(c->area), "key-press-event", G_CALLBACK(dt_iop_tonecurve_key_press), self);
 
@@ -1304,12 +1305,8 @@ void gui_init(struct dt_iop_module_t *self)
   gtk_size_group_add_widget(c->sizegroup, GTK_WIDGET(c->area));
   gtk_size_group_add_widget(c->sizegroup, GTK_WIDGET(c->channel_tabs));
 
-  dt_iop_init_picker(&c->color_picker,
-              self,
-              DT_COLOR_PICKER_POINT_AREA,
-              _iop_color_picker_get_set,
-              _iop_color_picker_apply,
-              _iop_color_picker_update);
+  dt_iop_init_picker(&c->color_picker, self, DT_COLOR_PICKER_POINT_AREA, _iop_color_picker_get_set,
+                     _iop_color_picker_apply, _iop_color_picker_update);
 }
 
 void gui_cleanup(struct dt_iop_module_t *self)

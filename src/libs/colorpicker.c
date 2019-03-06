@@ -169,7 +169,8 @@ static void _update_picker_output(dt_lib_module_t *self)
     switch(input_color)
     {
       case 0: // rgb
-        snprintf(colstring, sizeof(colstring), "(%d, %d, %d)", (int)round(rgb[0] * 255.f), (int)round(rgb[1] * 255.f), (int)round(rgb[2] * 255.f));
+        snprintf(colstring, sizeof(colstring), "(%d, %d, %d)", (int)round(rgb[0] * 255.f),
+                 (int)round(rgb[1] * 255.f), (int)round(rgb[2] * 255.f));
         break;
       case 1: // Lab
         snprintf(colstring, sizeof(colstring), "(%.03f, %.03f, %.03f)", lab[0], lab[1], lab[2]);
@@ -278,7 +279,8 @@ static void _update_samples_output(dt_lib_module_t *self)
     {
       case 0:
         // RGB
-        snprintf(text, sizeof(text), "(%d, %d, %d)", (int)round(rgb[0] * 255.f), (int)round(rgb[1] * 255.f), (int)round(rgb[2] * 255.f));
+        snprintf(text, sizeof(text), "(%d, %d, %d)", (int)round(rgb[0] * 255.f), (int)round(rgb[1] * 255.f),
+                 (int)round(rgb[2] * 255.f));
         break;
 
       case 1:

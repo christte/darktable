@@ -941,8 +941,9 @@ void distort_mask(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *p
   const struct dt_interpolation *interpolation = dt_interpolation_new(DT_INTERPOLATION_USERPREF);
 
   float ihomograph[3][3];
-  homography((float *)ihomograph, data->rotation, data->lensshift_v, data->lensshift_h, data->shear, data->f_length_kb,
-             data->orthocorr, data->aspect, piece->buf_in.width, piece->buf_in.height, ASHIFT_HOMOGRAPH_INVERTED);
+  homography((float *)ihomograph, data->rotation, data->lensshift_v, data->lensshift_h, data->shear,
+             data->f_length_kb, data->orthocorr, data->aspect, piece->buf_in.width, piece->buf_in.height,
+             ASHIFT_HOMOGRAPH_INVERTED);
 
   // clipping offset
   const float fullwidth = (float)piece->buf_out.width / (data->cr - data->cl);
@@ -981,8 +982,8 @@ void distort_mask(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *p
       pin[1] -= roi_in->y;
 
       // get output values by interpolation from input image
-      dt_interpolation_compute_pixel1c(interpolation, in, _out, pin[0], pin[1], roi_in->width,
-                                       roi_in->height, roi_in->width);
+      dt_interpolation_compute_pixel1c(interpolation, in, _out, pin[0], pin[1], roi_in->width, roi_in->height,
+                                       roi_in->width);
     }
   }
 }

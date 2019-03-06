@@ -207,7 +207,8 @@ void finalize_store(dt_imageio_module_storage_t *self, dt_imageio_module_data_t 
     dt_image_cache_read_release(darktable.image_cache, img);
 
     gchar *imgbody = g_strdup_printf(imageBodyFormat, filename, exif);
-    if (body != NULL) {
+    if(body != NULL)
+    {
       gchar *body_bak = body;
       body = g_strconcat(body_bak, imgbody, NULL);
       g_free(body_bak);

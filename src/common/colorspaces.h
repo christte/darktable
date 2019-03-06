@@ -57,7 +57,8 @@ typedef enum dt_colorspaces_color_profile_type_t
   DT_COLORSPACE_VENDOR_MATRIX = 13,
   DT_COLORSPACE_ALTERNATE_MATRIX = 14,
   DT_COLORSPACE_BRG = 15,
-  DT_COLORSPACE_EXPORT = 16, // export and softproof are categories and will return NULL with dt_colorspaces_get_profile()
+  DT_COLORSPACE_EXPORT
+  = 16, // export and softproof are categories and will return NULL with dt_colorspaces_get_profile()
   DT_COLORSPACE_SOFTPROOF = 17,
   DT_COLORSPACE_LAST = 18
 } dt_colorspaces_color_profile_type_t;
@@ -74,8 +75,9 @@ typedef enum dt_colorspaces_profile_direction_t
   DT_PROFILE_DIRECTION_IN = 1 << 0,
   DT_PROFILE_DIRECTION_OUT = 1 << 1,
   DT_PROFILE_DIRECTION_DISPLAY = 1 << 2,
-  DT_PROFILE_DIRECTION_CATEGORY = 1 << 3,  // categories will return NULL with dt_colorspaces_get_profile()
-  DT_PROFILE_DIRECTION_ANY = DT_PROFILE_DIRECTION_IN | DT_PROFILE_DIRECTION_OUT | DT_PROFILE_DIRECTION_DISPLAY | DT_PROFILE_DIRECTION_CATEGORY
+  DT_PROFILE_DIRECTION_CATEGORY = 1 << 3, // categories will return NULL with dt_colorspaces_get_profile()
+  DT_PROFILE_DIRECTION_ANY = DT_PROFILE_DIRECTION_IN | DT_PROFILE_DIRECTION_OUT | DT_PROFILE_DIRECTION_DISPLAY
+                             | DT_PROFILE_DIRECTION_CATEGORY
 } dt_colorspaces_profile_direction_t;
 
 typedef struct dt_colorspaces_t

@@ -17,6 +17,7 @@
     along with darktable.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "common/curl_tools.h"
 #include "common/darktable.h"
 #include "common/image.h"
 #include "common/image_cache.h"
@@ -25,7 +26,6 @@
 #include "common/metadata.h"
 #include "common/pwstorage/pwstorage.h"
 #include "common/tags.h"
-#include "common/curl_tools.h"
 #include "control/conf.h"
 #include "control/control.h"
 #include "dtgtk/button.h"

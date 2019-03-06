@@ -55,9 +55,8 @@ static void _pop_undo(gpointer user_data, dt_undo_type_t type, dt_undo_data_t *d
       else
         labels = clabels->after;
 
-      for(int color=0; color<5; color++)
-        if(labels & (1<<color))
-          dt_colorlabels_set_label(clabels->imgid, color);
+      for(int color = 0; color < 5; color++)
+        if(labels & (1 << color)) dt_colorlabels_set_label(clabels->imgid, color);
 
       list = g_list_next(list);
     }
@@ -71,8 +70,8 @@ static dt_undo_colorlabels_t *_get_labels(int imgid, uint8_t label, gboolean add
   result->imgid = imgid;
   sqlite3_stmt *stmt;
 
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "SELECT color FROM main.color_labels WHERE imgid=?1", -1, &stmt, NULL);
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT color FROM main.color_labels WHERE imgid=?1",
+                              -1, &stmt, NULL);
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
 
   while(sqlite3_step(stmt) == SQLITE_ROW)
@@ -95,7 +94,8 @@ GList *_get_labels_selection(uint8_t label, gboolean add)
   GList *result = NULL;
 
   sqlite3_stmt *stmt;
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT imgid FROM main.selected_images", -1, &stmt, NULL);
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT imgid FROM main.selected_images", -1, &stmt,
+                              NULL);
 
   while(sqlite3_step(stmt) == SQLITE_ROW)
   {
@@ -194,7 +194,8 @@ void dt_colorlabels_toggle_label_selection(const int color)
   }
   sqlite3_finalize(stmt);
 
-  dt_undo_record(darktable.undo, NULL, DT_UNDO_COLORLABELS, (dt_undo_data_t *)undo, &_pop_undo, _colorlabels_undo_data_free);
+  dt_undo_record(darktable.undo, NULL, DT_UNDO_COLORLABELS, (dt_undo_data_t *)undo, &_pop_undo,
+                 _colorlabels_undo_data_free);
   dt_undo_end_group(darktable.undo);
 
   dt_collection_hint_message(darktable.collection);
@@ -235,7 +236,8 @@ void dt_colorlabels_toggle_label(const int imgid, const int color)
   }
   sqlite3_finalize(stmt);
 
-  dt_undo_record(darktable.undo, NULL, DT_UNDO_COLORLABELS, (dt_undo_data_t *)undo, &_pop_undo, _colorlabels_undo_data_free);
+  dt_undo_record(darktable.undo, NULL, DT_UNDO_COLORLABELS, (dt_undo_data_t *)undo, &_pop_undo,
+                 _colorlabels_undo_data_free);
   dt_undo_end_group(darktable.undo);
 
   dt_collection_hint_message(darktable.collection);

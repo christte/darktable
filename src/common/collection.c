@@ -126,7 +126,7 @@ const dt_collection_params_t *dt_collection_params(const dt_collection_t *collec
 // for term should be an int intiailized to and_operator_initial()
 // before use.
 #define and_operator_initial() (0)
-static char * and_operator(int *term)
+static char *and_operator(int *term)
 {
   assert(term != NULL);
   if(*term == 0)
@@ -164,24 +164,22 @@ int dt_collection_update(const dt_collection_t *collection)
       wq = dt_util_dstrcat(wq, "%s (film_id = %d)", and_operator(&and_term), collection->params.film_id);
     }
     // DON'T SELECT IMAGES MARKED TO BE DELETED.
-    wq = dt_util_dstrcat(wq, " %s (flags & %d) != %d",
-                         and_operator(&and_term), DT_IMAGE_REMOVE,
-                         DT_IMAGE_REMOVE);
+    wq = dt_util_dstrcat(wq, " %s (flags & %d) != %d", and_operator(&and_term), DT_IMAGE_REMOVE, DT_IMAGE_REMOVE);
 
     if(collection->params.filter_flags & COLLECTION_FILTER_CUSTOM_COMPARE)
-      wq = dt_util_dstrcat(wq, " %s (flags & 7) %s %d AND (flags & 7) != 6",
-                           and_operator(&and_term),
+      wq = dt_util_dstrcat(wq, " %s (flags & 7) %s %d AND (flags & 7) != 6", and_operator(&and_term),
                            comparators[collection->params.comparator], rating - 1);
     else if(collection->params.filter_flags & COLLECTION_FILTER_ATLEAST_RATING)
-      wq = dt_util_dstrcat(wq, " %s (flags & 7) >= %d AND (flags & 7) != 6",
-                           and_operator(&and_term), rating - 1);
+      wq = dt_util_dstrcat(wq, " %s (flags & 7) >= %d AND (flags & 7) != 6", and_operator(&and_term), rating - 1);
     else if(collection->params.filter_flags & COLLECTION_FILTER_EQUAL_RATING)
       wq = dt_util_dstrcat(wq, " %s (flags & 7) == %d", and_operator(&and_term), rating - 1);
 
     if(collection->params.filter_flags & COLLECTION_FILTER_ALTERED)
-      wq = dt_util_dstrcat(wq, " %s id IN (SELECT imgid FROM main.history WHERE imgid=id)", and_operator(&and_term));
+      wq = dt_util_dstrcat(wq, " %s id IN (SELECT imgid FROM main.history WHERE imgid=id)",
+                           and_operator(&and_term));
     else if(collection->params.filter_flags & COLLECTION_FILTER_UNALTERED)
-      wq = dt_util_dstrcat(wq, " %s id NOT IN (SELECT imgid FROM main.history WHERE imgid=id)", and_operator(&and_term));
+      wq = dt_util_dstrcat(wq, " %s id NOT IN (SELECT imgid FROM main.history WHERE imgid=id)",
+                           and_operator(&and_term));
 
     /* add where ext if wanted */
     if((collection->params.query_flags & COLLECTION_QUERY_USE_WHERE_EXT))
@@ -198,16 +196,17 @@ int dt_collection_update(const dt_collection_t *collection)
   if(darktable.gui && darktable.gui->grouping)
   {
     /* Show the expanded group... */
-    wq = dt_util_dstrcat(wq, " AND (group_id = %d OR "
-                             /* ...and, in unexpanded groups, show the representative image.
-                              * It's possible that the above WHERE clauses will filter out the representative
-                              * image, so we have some logic here to pick the image id closest to the
-                              * representative image.
-                              * The *2+CASE statement are to break ties, so that when id < group_id, it's
-                              * weighted a little higher than when id > group_id. */
-                             "id IN (SELECT id FROM "
-                             "(SELECT id, MIN(ABS(id-group_id)*2 + CASE WHEN (id-group_id) < 0 THEN 1 ELSE 0 END) "
-                             "FROM main.images WHERE %s GROUP BY group_id)))",
+    wq = dt_util_dstrcat(wq,
+                         " AND (group_id = %d OR "
+                         /* ...and, in unexpanded groups, show the representative image.
+                          * It's possible that the above WHERE clauses will filter out the representative
+                          * image, so we have some logic here to pick the image id closest to the
+                          * representative image.
+                          * The *2+CASE statement are to break ties, so that when id < group_id, it's
+                          * weighted a little higher than when id > group_id. */
+                         "id IN (SELECT id FROM "
+                         "(SELECT id, MIN(ABS(id-group_id)*2 + CASE WHEN (id-group_id) < 0 THEN 1 ELSE 0 END) "
+                         "FROM main.images WHERE %s GROUP BY group_id)))",
                          darktable.gui->expanded_group_id, wq_no_group);
 
     /* Additionally, when a group is expanded, make sure the representative image wasn't filtered out.
@@ -226,21 +225,25 @@ int dt_collection_update(const dt_collection_t *collection)
           && (collection->params.query_flags & COLLECTION_QUERY_USE_SORT))
   {
     selq_pre = dt_util_dstrcat(selq_pre, "SELECT DISTINCT a.id FROM (SELECT * FROM main.images WHERE ");
-    selq_post = dt_util_dstrcat(selq_post, ") AS a LEFT OUTER JOIN main.meta_data AS m ON a.id = m.id AND m.key = %d ",
-                                DT_METADATA_XMP_DC_TITLE);
+    selq_post
+        = dt_util_dstrcat(selq_post, ") AS a LEFT OUTER JOIN main.meta_data AS m ON a.id = m.id AND m.key = %d ",
+                          DT_METADATA_XMP_DC_TITLE);
   }
   else if(collection->params.sort == DT_COLLECTION_SORT_DESCRIPTION
           && (collection->params.query_flags & COLLECTION_QUERY_USE_SORT))
   {
     selq_pre = dt_util_dstrcat(selq_pre, "SELECT DISTINCT a.id FROM (SELECT * FROM main.images WHERE ");
-    selq_post = dt_util_dstrcat(selq_post, ") AS a LEFT OUTER JOIN main.meta_data AS m ON a.id = m.id AND m.key = %d ",
-                                DT_METADATA_XMP_DC_DESCRIPTION);
+    selq_post
+        = dt_util_dstrcat(selq_post, ") AS a LEFT OUTER JOIN main.meta_data AS m ON a.id = m.id AND m.key = %d ",
+                          DT_METADATA_XMP_DC_DESCRIPTION);
   }
   else if(collection->params.sort == DT_COLLECTION_SORT_PATH
           && (collection->params.query_flags & COLLECTION_QUERY_USE_SORT))
   {
     selq_pre = dt_util_dstrcat(selq_pre, "SELECT DISTINCT id FROM (SELECT * FROM main.images WHERE ");
-    selq_post = dt_util_dstrcat(selq_post, ") AS a JOIN (SELECT id AS film_rolls_id, folder FROM main.film_rolls) ON film_id = film_rolls_id");
+    selq_post = dt_util_dstrcat(
+        selq_post,
+        ") AS a JOIN (SELECT id AS film_rolls_id, folder FROM main.film_rolls) ON film_id = film_rolls_id");
   }
   else if(collection->params.query_flags & COLLECTION_QUERY_USE_ONLY_WHERE_EXT)
     selq_pre = dt_util_dstrcat(selq_pre, "SELECT DISTINCT images.id FROM main.images AS a ");
@@ -676,7 +679,8 @@ GList *dt_collection_get(const dt_collection_t *collection, int limit, gboolean 
     gchar *q;
 
     if(selected)
-      q = g_strdup_printf("SELECT id FROM main.selected_images AS s JOIN (%s) AS a WHERE a.id = s.imgid LIMIT -1, ?3", query);
+      q = g_strdup_printf(
+          "SELECT id FROM main.selected_images AS s JOIN (%s) AS a WHERE a.id = s.imgid LIMIT -1, ?3", query);
     else
       q = g_strdup_printf("%s", query);
 

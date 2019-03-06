@@ -365,8 +365,8 @@ static inline void keystone_backtransform(float *i, float *k_space, float a, flo
   i[1] = -(d * xx - a * yy) / div + kya;
 }
 
-static inline void keystone_transform(float *i, float *k_space, float a, float b, float d, float e, float g, float h,
-                                      float kxa, float kya)
+static inline void keystone_transform(float *i, float *k_space, float a, float b, float d, float e, float g,
+                                      float h, float kxa, float kya)
 {
   const float xx = i[0] - kxa;
   const float yy = i[1] - kya;
@@ -524,7 +524,8 @@ void distort_mask(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *p
   dt_iop_clipping_data_t *d = (dt_iop_clipping_data_t *)piece->data;
 
   // only crop, no rot fast and sharp path:
-  if(!d->flags && d->angle == 0.0 && d->all_off && roi_in->width == roi_out->width && roi_in->height == roi_out->height)
+  if(!d->flags && d->angle == 0.0 && d->all_off && roi_in->width == roi_out->width
+     && roi_in->height == roi_out->height)
   {
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) default(none) shared(d)
@@ -1922,7 +1923,7 @@ static gint _aspect_ratio_cmp(const dt_iop_clipping_aspect_t *a, const dt_iop_cl
 static gchar *format_aspect(gchar *original, int adim, int bdim)
 {
   // Special ratios:  freehand, original image
-  if ( bdim == 0 ) return g_strdup(original);
+  if(bdim == 0) return g_strdup(original);
 
   return g_strdup_printf("%s  %4.2f", original, (float)adim / (float)bdim);
 }

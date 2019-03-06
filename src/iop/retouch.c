@@ -31,10 +31,10 @@
 #include "develop/blend.h"
 #include "develop/imageop_math.h"
 #include "develop/masks.h"
-#include "iop/iop_api.h"
 #include "dtgtk/drawingarea.h"
 #include "gui/accelerators.h"
 #include "gui/color_picker_proxy.h"
+#include "iop/iop_api.h"
 #include <stdlib.h>
 
 // this is the version of the modules parameters,
@@ -160,7 +160,7 @@ typedef struct dt_iop_retouch_gui_data_t
   GtkWidget *vbox_fill;
   GtkWidget *hbox_color_pick;
   GtkWidget *colorpick;          // select a specific color
-  GtkToggleButton *colorpicker; // pick a color from the picture
+  GtkToggleButton *colorpicker;  // pick a color from the picture
 
   GtkWidget *cmb_fill_mode;
   GtkWidget *sl_fill_brightness;
@@ -921,8 +921,8 @@ static int rt_masks_point_calc_delta(dt_iop_module_t *self, dt_dev_pixelpipe_iop
 }
 
 /* returns (dx dy) to get from the source to the destination */
-static int rt_masks_get_delta_to_destination(dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const dt_iop_roi_t *roi,
-                                             dt_masks_form_t *form, int *dx, int *dy)
+static int rt_masks_get_delta_to_destination(dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece,
+                                             const dt_iop_roi_t *roi, dt_masks_form_t *form, int *dx, int *dy)
 {
   int res = 0;
 
@@ -2747,8 +2747,7 @@ void gui_init(dt_iop_module_t *self)
 
   g->bt_paste_scale
       = dtgtk_togglebutton_new(_retouch_cairo_paint_paste_forms, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
-  g_object_set(G_OBJECT(g->bt_paste_scale), "tooltip-text", _("paste cut shapes to current scale"),
-               (char *)NULL);
+  g_object_set(G_OBJECT(g->bt_paste_scale), "tooltip-text", _("paste cut shapes to current scale"), (char *)NULL);
   g_signal_connect(G_OBJECT(g->bt_paste_scale), "toggled", G_CALLBACK(rt_copypaste_scale_callback), self);
   gtk_widget_set_size_request(GTK_WIDGET(g->bt_paste_scale), bs, bs);
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_paste_scale), FALSE);
@@ -2938,11 +2937,8 @@ void gui_init(dt_iop_module_t *self)
 
   rt_show_hide_controls(self, g, p, g);
 
-  dt_iop_init_single_picker(&g->color_picker,
-                     self,
-                     GTK_WIDGET(g->colorpicker),
-                     DT_COLOR_PICKER_POINT,
-                     _iop_color_picker_apply);
+  dt_iop_init_single_picker(&g->color_picker, self, GTK_WIDGET(g->colorpicker), DT_COLOR_PICKER_POINT,
+                            _iop_color_picker_apply);
 }
 
 void gui_reset(struct dt_iop_module_t *self)

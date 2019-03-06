@@ -431,8 +431,7 @@ static void _iop_color_picker_apply(dt_iop_module_t *self)
 {
   dt_iop_monochrome_params_t *p = (dt_iop_monochrome_params_t *)self->params;
 
-  if(fabsf(p->a - self->picked_color[1]) < 0.0001f
-     && fabsf(p->b - self->picked_color[2]) < 0.0001f)
+  if(fabsf(p->a - self->picked_color[1]) < 0.0001f && fabsf(p->b - self->picked_color[2]) < 0.0001f)
   {
     // interrupt infinite loops
     return;
@@ -442,7 +441,7 @@ static void _iop_color_picker_apply(dt_iop_module_t *self)
   p->b = self->picked_color[2];
   float da = self->picked_color_max[1] - self->picked_color_min[1];
   float db = self->picked_color_max[2] - self->picked_color_min[2];
-  p->size = CLAMP((da + db)/128.0, .5, 3.0);
+  p->size = CLAMP((da + db) / 128.0, .5, 3.0);
 
   dt_dev_add_history_item(darktable.develop, self, TRUE);
   dt_control_queue_redraw_widget(self->widget);
@@ -613,11 +612,8 @@ void gui_init(struct dt_iop_module_t *self)
   cmsHPROFILE hLab = dt_colorspaces_get_profile(DT_COLORSPACE_LAB, "", DT_PROFILE_DIRECTION_ANY)->profile;
   g->xform = cmsCreateTransform(hLab, TYPE_Lab_DBL, hsRGB, TYPE_RGB_DBL, INTENT_PERCEPTUAL,
                                 0); // cmsFLAGS_NOTPRECALC);
-  dt_iop_init_single_picker(&g->color_picker,
-                     self,
-                     GTK_WIDGET(g->colorpicker),
-                     DT_COLOR_PICKER_AREA,
-                     _iop_color_picker_apply);
+  dt_iop_init_single_picker(&g->color_picker, self, GTK_WIDGET(g->colorpicker), DT_COLOR_PICKER_AREA,
+                            _iop_color_picker_apply);
 }
 
 void gui_cleanup(struct dt_iop_module_t *self)

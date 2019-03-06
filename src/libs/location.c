@@ -17,9 +17,9 @@
     along with darktable.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "common/curl_tools.h"
 #include "common/darktable.h"
 #include "common/geo.h"
-#include "common/curl_tools.h"
 #include "control/conf.h"
 #include "control/control.h"
 #include "control/jobs.h"

@@ -148,8 +148,7 @@ static void load_themes_dir(const char *basedir)
   if(dir)
   {
     const gchar *d_name;
-    while((d_name = g_dir_read_name(dir)))
-      darktable.themes = g_list_append(darktable.themes, g_strdup(d_name));
+    while((d_name = g_dir_read_name(dir))) darktable.themes = g_list_append(darktable.themes, g_strdup(d_name));
     g_dir_close(dir);
   }
   g_free(themes_dir);
@@ -249,7 +248,7 @@ static void hardcoded_gui(GtkWidget *grid, int *line)
   int k = 0;
   for(GList *iter = darktable.themes; iter; iter = g_list_next(iter))
   {
-    gchar *name = g_strdup((gchar*)(iter->data));
+    gchar *name = g_strdup((gchar *)(iter->data));
     // remove extension
     gchar *i = g_strrstr(name, ".");
     if(i) *i = '\0';
@@ -1206,8 +1205,7 @@ static void import_preset(GtkButton *button, gpointer data)
 
   // Zero value indicates import
   chooser = gtk_file_chooser_dialog_new(_("select preset to import"), NULL, GTK_FILE_CHOOSER_ACTION_OPEN,
-                                        _("_cancel"), GTK_RESPONSE_CANCEL, _("_open"), GTK_RESPONSE_ACCEPT,
-                                        NULL);
+                                        _("_cancel"), GTK_RESPONSE_CANCEL, _("_open"), GTK_RESPONSE_ACCEPT, NULL);
 #ifdef GDK_WINDOWING_QUARTZ
   dt_osx_disallow_fullscreen(chooser);
 #endif
@@ -1325,11 +1323,9 @@ static void edit_preset(GtkTreeView *tree, const gint rowid, const gchar *name, 
   /* Create the widgets */
   char title[1024];
   snprintf(title, sizeof(title), _("edit `%s' for module `%s'"), name, module);
-  dialog = gtk_dialog_new_with_buttons(title, GTK_WINDOW(_preferences_dialog),
-                                       GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
-                                       _("_save"), GTK_RESPONSE_YES,
-                                       _("_cancel"), GTK_RESPONSE_CANCEL,
-                                       _("_ok"), GTK_RESPONSE_OK, NULL);
+  dialog = gtk_dialog_new_with_buttons(
+      title, GTK_WINDOW(_preferences_dialog), GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, _("_save"),
+      GTK_RESPONSE_YES, _("_cancel"), GTK_RESPONSE_CANCEL, _("_ok"), GTK_RESPONSE_OK, NULL);
 #ifdef GDK_WINDOWING_QUARTZ
   dt_osx_disallow_fullscreen(dialog);
 #endif
@@ -1532,14 +1528,10 @@ static void edit_preset_response(GtkDialog *dialog, gint response_id, dt_gui_pre
     DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 4, gtk_entry_get_text(g->lens), -1, SQLITE_TRANSIENT);
     DT_DEBUG_SQLITE3_BIND_DOUBLE(stmt, 5, gtk_spin_button_get_value(g->iso_min));
     DT_DEBUG_SQLITE3_BIND_DOUBLE(stmt, 6, gtk_spin_button_get_value(g->iso_max));
-    DT_DEBUG_SQLITE3_BIND_DOUBLE(stmt, 7,
-                                 dt_gui_presets_exposure_value[dt_bauhaus_combobox_get(g->exposure_min)]);
-    DT_DEBUG_SQLITE3_BIND_DOUBLE(stmt, 8,
-                                 dt_gui_presets_exposure_value[dt_bauhaus_combobox_get(g->exposure_max)]);
-    DT_DEBUG_SQLITE3_BIND_DOUBLE(stmt, 9,
-                                 dt_gui_presets_aperture_value[dt_bauhaus_combobox_get(g->aperture_min)]);
-    DT_DEBUG_SQLITE3_BIND_DOUBLE(stmt, 10,
-                                 dt_gui_presets_aperture_value[dt_bauhaus_combobox_get(g->aperture_max)]);
+    DT_DEBUG_SQLITE3_BIND_DOUBLE(stmt, 7, dt_gui_presets_exposure_value[dt_bauhaus_combobox_get(g->exposure_min)]);
+    DT_DEBUG_SQLITE3_BIND_DOUBLE(stmt, 8, dt_gui_presets_exposure_value[dt_bauhaus_combobox_get(g->exposure_max)]);
+    DT_DEBUG_SQLITE3_BIND_DOUBLE(stmt, 9, dt_gui_presets_aperture_value[dt_bauhaus_combobox_get(g->aperture_min)]);
+    DT_DEBUG_SQLITE3_BIND_DOUBLE(stmt, 10, dt_gui_presets_aperture_value[dt_bauhaus_combobox_get(g->aperture_max)]);
     DT_DEBUG_SQLITE3_BIND_DOUBLE(stmt, 11, gtk_spin_button_get_value(g->focal_length_min));
     DT_DEBUG_SQLITE3_BIND_DOUBLE(stmt, 12, gtk_spin_button_get_value(g->focal_length_max));
     DT_DEBUG_SQLITE3_BIND_INT(stmt, 13, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g->autoapply)));
@@ -1560,8 +1552,8 @@ static void edit_preset_response(GtkDialog *dialog, gint response_id, dt_gui_pre
 
     GtkWidget *win = dt_ui_main_window(darktable.gui->ui);
     GtkWidget *filechooser = gtk_file_chooser_dialog_new(
-      _("select directory"), GTK_WINDOW(win), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER, _("_cancel"),
-      GTK_RESPONSE_CANCEL, _("_select as output destination"), GTK_RESPONSE_ACCEPT, (char *)NULL);
+        _("select directory"), GTK_WINDOW(win), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER, _("_cancel"),
+        GTK_RESPONSE_CANCEL, _("_select as output destination"), GTK_RESPONSE_ACCEPT, (char *)NULL);
 #ifdef GDK_WINDOWING_QUARTZ
     dt_osx_disallow_fullscreen(filechooser);
 #endif

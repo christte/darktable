@@ -29,9 +29,9 @@
 #include "dtgtk/gradientslider.h"
 #include "dtgtk/resetlabel.h"
 #include "gui/accelerators.h"
+#include "gui/color_picker_proxy.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
-#include "gui/color_picker_proxy.h"
 #include "iop/iop_api.h"
 #include <assert.h>
 #include <gtk/gtk.h>
@@ -417,7 +417,7 @@ static void colorpick_callback(GtkColorButton *widget, dt_iop_module_t *self)
 
 static int _iop_color_picker_get_set(dt_iop_module_t *self, GtkWidget *button)
 {
-  dt_iop_splittoning_gui_data_t *g =  (dt_iop_splittoning_gui_data_t *)self->gui_data;
+  dt_iop_splittoning_gui_data_t *g = (dt_iop_splittoning_gui_data_t *)self->gui_data;
 
   const int current_picker = g->color_picker.current_picker;
 
@@ -428,7 +428,7 @@ static int _iop_color_picker_get_set(dt_iop_module_t *self, GtkWidget *button)
   else if(button == g->gslider3)
     g->color_picker.current_picker = DT_SPLITTONING_SHADOWS;
 
-  if (current_picker == g->color_picker.current_picker)
+  if(current_picker == g->color_picker.current_picker)
     return DT_COLOR_PICKER_ALREADY_SELECTED;
   else
     return g->color_picker.current_picker;
@@ -469,7 +469,7 @@ static void _iop_color_picker_apply(struct dt_iop_module_t *self)
     return;
   }
 
-  *p_hue        = H;
+  *p_hue = H;
   *p_saturation = S;
 
   darktable.gui->reset = 1;
@@ -484,7 +484,7 @@ static void _iop_color_picker_apply(struct dt_iop_module_t *self)
 
 static void _iop_color_picker_update(dt_iop_module_t *self)
 {
-  dt_iop_splittoning_gui_data_t *g =  (dt_iop_splittoning_gui_data_t *)self->gui_data;
+  dt_iop_splittoning_gui_data_t *g = (dt_iop_splittoning_gui_data_t *)self->gui_data;
   dt_bauhaus_widget_set_quad_active(g->gslider1, g->color_picker.current_picker == DT_SPLITTONING_HIGHLIGHTS);
   dt_bauhaus_widget_set_quad_active(g->gslider3, g->color_picker.current_picker == DT_SPLITTONING_SHADOWS);
 }
@@ -582,7 +582,8 @@ static inline int gui_init_tab(struct dt_iop_module_t *self, int line, const cha
   dt_bauhaus_slider_set_stop(hue, 0.830f, 1.0f, 0.0f, 1.0f);
   dt_bauhaus_slider_set_stop(hue, 1.0f, 1.0f, 0.0f, 0.0f);
   gtk_widget_set_tooltip_text(hue, _("select the hue tone"));
-  dt_bauhaus_widget_set_quad_paint(hue, dtgtk_cairo_paint_colorpicker, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER, NULL);
+  dt_bauhaus_widget_set_quad_paint(hue, dtgtk_cairo_paint_colorpicker, CPF_STYLE_FLAT | CPF_DO_NOT_USE_BORDER,
+                                   NULL);
   dt_bauhaus_widget_set_quad_toggle(hue, TRUE);
   g_signal_connect(G_OBJECT(hue), "quad-pressed", G_CALLBACK(dt_iop_color_picker_callback), &g->color_picker);
 
@@ -661,12 +662,8 @@ void gui_init(struct dt_iop_module_t *self)
   g_signal_connect(G_OBJECT(g->colorpick1), "color-set", G_CALLBACK(colorpick_callback), self);
   g_signal_connect(G_OBJECT(g->colorpick2), "color-set", G_CALLBACK(colorpick_callback), self);
 
-  dt_iop_init_picker(&g->color_picker,
-              self,
-              DT_COLOR_PICKER_POINT,
-              _iop_color_picker_get_set,
-              _iop_color_picker_apply,
-              _iop_color_picker_update);
+  dt_iop_init_picker(&g->color_picker, self, DT_COLOR_PICKER_POINT, _iop_color_picker_get_set,
+                     _iop_color_picker_apply, _iop_color_picker_update);
 }
 
 void gui_cleanup(struct dt_iop_module_t *self)

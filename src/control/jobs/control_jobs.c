@@ -295,10 +295,9 @@ static float envelope(const float xx)
 }
 
 static int dt_control_merge_hdr_process(dt_imageio_module_data_t *datai, const char *filename,
-                                        const void *const ivoid,
-                                        dt_colorspaces_color_profile_type_t over_type, const char *over_filename,
-                                        void *exif, int exif_len, int imgid, int num, int total,
-                                        dt_dev_pixelpipe_t *pipe)
+                                        const void *const ivoid, dt_colorspaces_color_profile_type_t over_type,
+                                        const char *over_filename, void *exif, int exif_len, int imgid, int num,
+                                        int total, dt_dev_pixelpipe_t *pipe)
 {
   dt_control_merge_hdr_format_t *data = (dt_control_merge_hdr_format_t *)datai;
   dt_control_merge_hdr_t *d = data->d;
@@ -451,8 +450,8 @@ static int32_t dt_control_merge_hdr_job_run(dt_job_t *job)
     const uint32_t imgid = GPOINTER_TO_INT(t->data);
 
     dt_imageio_export_with_flags(imgid, "unused", &buf, (dt_imageio_module_data_t *)&dat, TRUE, FALSE, FALSE, TRUE,
-                                 FALSE, "pre:rawprepare", FALSE, DT_COLORSPACE_NONE, NULL, DT_INTENT_LAST, NULL, NULL,
-                                 num, total);
+                                 FALSE, "pre:rawprepare", FALSE, DT_COLORSPACE_NONE, NULL, DT_INTENT_LAST, NULL,
+                                 NULL, num, total);
 
     t = g_list_delete_link(t, t);
 
@@ -733,7 +732,8 @@ static gboolean _dt_delete_dialog_main_thread(gpointer user_data)
   if (modal_dialog->send_to_trash)
   {
     gtk_dialog_add_button(GTK_DIALOG(dialog), _("physically delete"), _DT_DELETE_DIALOG_CHOICE_DELETE);
-    gtk_dialog_add_button(GTK_DIALOG(dialog), _("physically delete all files"), _DT_DELETE_DIALOG_CHOICE_DELETE_ALL);
+    gtk_dialog_add_button(GTK_DIALOG(dialog), _("physically delete all files"),
+                          _DT_DELETE_DIALOG_CHOICE_DELETE_ALL);
   }
   gtk_dialog_add_button(GTK_DIALOG(dialog), _("only remove from the collection"), _DT_DELETE_DIALOG_CHOICE_REMOVE);
   gtk_dialog_add_button(GTK_DIALOG(dialog), _("skip to next file"), _DT_DELETE_DIALOG_CHOICE_CONTINUE);
@@ -812,7 +812,7 @@ static enum _dt_delete_status delete_file_from_disk(const char *filename, gboole
     {
       delete_status = _DT_DELETE_STATUS_OK_TO_REMOVE;
     }
-    else if (send_to_trash && *delete_on_trash_error)
+    else if(send_to_trash && *delete_on_trash_error)
     {
       // Loop again, this time delete instead of trashing
       delete_status = _DT_DELETE_STATUS_UNKNOWN;
@@ -843,7 +843,7 @@ static enum _dt_delete_status delete_file_from_disk(const char *filename, gboole
         delete_status = _DT_DELETE_STATUS_UNKNOWN;
         send_to_trash = FALSE;
       }
-      else if (send_to_trash && res == _DT_DELETE_DIALOG_CHOICE_DELETE_ALL)
+      else if(send_to_trash && res == _DT_DELETE_DIALOG_CHOICE_DELETE_ALL)
       {
         // Loop again, this time delete instead of trashing
         delete_status = _DT_DELETE_STATUS_UNKNOWN;

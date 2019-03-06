@@ -1097,7 +1097,7 @@ static void _view_map_check_preference_changed(gpointer instance, gpointer user_
 static void _view_map_collection_changed(gpointer instance, gpointer user_data)
 {
   dt_view_t *self = (dt_view_t *)user_data;
-   dt_map_t *lib = (dt_map_t *)self->data;
+  dt_map_t *lib = (dt_map_t *)self->data;
 
   if(darktable.view_manager->proxy.map.view)
   {
@@ -1164,19 +1164,19 @@ static gboolean _view_map_center_on_image_list(dt_view_t *self, const GList *sel
     l = g_list_next(l);
   }
 
-  if(count>0)
+  if(count > 0)
   {
     // enlarge the bounding box to avoid having the pictures on the border, and this will give a bit of context.
 
     float d_lon = max_longitude - min_longitude;
     float d_lat = max_latitude - min_latitude;
 
-    if(d_lon>1.0)
+    if(d_lon > 1.0)
       d_lon /= 100.0;
     else
       d_lon = (FIVE_KM - d_lon) / 2.0;
 
-    if(d_lat>1.0)
+    if(d_lat > 1.0)
       d_lat /= 100.0;
     else
       d_lat = (FIVE_KM - d_lat) / 2.0;

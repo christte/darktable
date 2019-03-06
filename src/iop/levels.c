@@ -33,8 +33,8 @@
 #include "develop/imageop.h"
 #include "develop/imageop_math.h"
 #include "dtgtk/drawingarea.h"
-#include "gui/draw.h"
 #include "gui/color_picker_proxy.h"
+#include "gui/draw.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "iop/iop_api.h"
@@ -247,7 +247,7 @@ static int _iop_color_picker_get_set(dt_iop_module_t *self, GtkWidget *button)
   else if(button == GTK_WIDGET(g->whitepick))
     g->color_picker.current_picker = WHITE;
 
-  if (current_picker == g->color_picker.current_picker)
+  if(current_picker == g->color_picker.current_picker)
     return DT_COLOR_PICKER_ALREADY_SELECTED;
   else
     return g->color_picker.current_picker;
@@ -264,10 +264,8 @@ static void _iop_color_picker_apply(struct dt_iop_module_t *self)
 
   float mean_picked_color = *self->picked_color / 100.0;
 
-  if(self->color_picker_point[0] >= 0.0f
-     && self->color_picker_point[1] >= 0.0f
-     && self->picked_color_max[0] >= 0.0f
-     && mean_picked_color != c->last_picked_color)
+  if(self->color_picker_point[0] >= 0.0f && self->color_picker_point[1] >= 0.0f
+     && self->picked_color_max[0] >= 0.0f && mean_picked_color != c->last_picked_color)
   {
     float previous_color[3];
     previous_color[0] = p->levels[0];
@@ -310,14 +308,11 @@ static void _iop_color_picker_apply(struct dt_iop_module_t *self)
       }
     }
 
-    if(previous_color[0] != p->levels[0]
-       || previous_color[1] != p->levels[1]
-       || previous_color[2] != p->levels[2])
+    if(previous_color[0] != p->levels[0] || previous_color[1] != p->levels[1] || previous_color[2] != p->levels[2])
     {
       dt_dev_add_history_item(darktable.develop, self, TRUE);
     }
   }
-
 }
 
 static void _iop_color_picker_update(dt_iop_module_t *self)
@@ -775,12 +770,8 @@ void gui_init(dt_iop_module_t *self)
   g_signal_connect(G_OBJECT(c->greypick), "toggled", G_CALLBACK(dt_iop_color_picker_callback), &c->color_picker);
   g_signal_connect(G_OBJECT(c->whitepick), "toggled", G_CALLBACK(dt_iop_color_picker_callback), &c->color_picker);
 
-  dt_iop_init_picker(&c->color_picker,
-              self,
-              DT_COLOR_PICKER_POINT,
-              _iop_color_picker_get_set,
-              _iop_color_picker_apply,
-              _iop_color_picker_update);
+  dt_iop_init_picker(&c->color_picker, self, DT_COLOR_PICKER_POINT, _iop_color_picker_get_set,
+                     _iop_color_picker_apply, _iop_color_picker_update);
 }
 
 void gui_cleanup(dt_iop_module_t *self)

@@ -238,8 +238,8 @@ void distort_mask(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *p
   const int bpp = sizeof(float);
   const int stride = bpp * roi_in->width;
 
-  dt_imageio_flip_buffers((char *)out, (const char *)in, bpp, roi_in->width, roi_in->height,
-                          roi_in->width, roi_in->height, stride, d->orientation);
+  dt_imageio_flip_buffers((char *)out, (const char *)in, bpp, roi_in->width, roi_in->height, roi_in->width,
+                          roi_in->height, stride, d->orientation);
 }
 
 // 1st pass: how large would the output be, given this input roi?

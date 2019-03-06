@@ -53,9 +53,10 @@
 
 static void usage(const char *progname)
 {
-  fprintf(stderr, "usage: %s <input file> [<xmp file>] <output file> [--width <max width>,--height <max "
-                  "height>,--bpp <bpp>,--hq <0|1|true|false>,--upscale <0|1|true|false>,--style <style name>,"
-                  "--style-overwrite,--verbose] [--core <darktable options>]\n",
+  fprintf(stderr,
+          "usage: %s <input file> [<xmp file>] <output file> [--width <max width>,--height <max "
+          "height>,--bpp <bpp>,--hq <0|1|true|false>,--upscale <0|1|true|false>,--style <style name>,"
+          "--style-overwrite,--verbose] [--core <darktable options>]\n",
           progname);
 }
 
@@ -372,8 +373,7 @@ int main(int argc, char *arg[])
   {
     g_strlcpy((char *)fdata->style, style, DT_MAX_STYLE_NAME_LENGTH);
     fdata->style[127] = '\0';
-    if(style_overwrite)
-      fdata->style_append = 0;
+    if(style_overwrite) fdata->style_append = 0;
   }
 
   if(storage->initialize_store)

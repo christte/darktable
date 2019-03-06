@@ -53,8 +53,8 @@ static void _pop_undo(gpointer user_data, dt_undo_type_t type, dt_undo_data_t *d
       GList *tag_list = tags->before;
 
       // remove from tagged_images
-      DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                  "DELETE FROM main.tagged_images WHERE imgid = ?1", -1, &stmt, NULL);
+      DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "DELETE FROM main.tagged_images WHERE imgid = ?1",
+                                  -1, &stmt, NULL);
       DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, tags->imgid);
       sqlite3_step(stmt);
       sqlite3_finalize(stmt);
@@ -90,15 +90,15 @@ static void _pop_undo(gpointer user_data, dt_undo_type_t type, dt_undo_data_t *d
 static dt_undo_tags_t *_get_tags(int imgid, guint tagid, gboolean add)
 {
   dt_undo_tags_t *result = (dt_undo_tags_t *)malloc(sizeof(dt_undo_tags_t));
-  result->imgid  = imgid;
+  result->imgid = imgid;
   result->before = NULL;
-  result->tagid  = tagid;
-  result->add    = add;
+  result->tagid = tagid;
+  result->add = add;
 
   sqlite3_stmt *stmt;
 
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "SELECT tagid FROM main.tagged_images WHERE imgid=?1", -1, &stmt, NULL);
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT tagid FROM main.tagged_images WHERE imgid=?1",
+                              -1, &stmt, NULL);
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
 
   while(sqlite3_step(stmt) == SQLITE_ROW)
@@ -116,7 +116,8 @@ GList *_get_tags_selection(guint tagid, gboolean add)
   GList *result = NULL;
 
   sqlite3_stmt *stmt;
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT imgid FROM main.selected_images", -1, &stmt, NULL);
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT imgid FROM main.selected_images", -1, &stmt,
+                              NULL);
 
   while(sqlite3_step(stmt) == SQLITE_ROW)
   {
@@ -439,7 +440,6 @@ void _detach_tag(guint tagid, gint imgid, gboolean undo_actif)
     dt_undo_record(darktable.undo, NULL, DT_UNDO_TAGS, (dt_undo_data_t *)undo, &_pop_undo, _tags_undo_data_free);
     dt_undo_end_group(darktable.undo);
   }
-
 }
 
 void dt_tag_detach(guint tagid, gint imgid)

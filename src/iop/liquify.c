@@ -786,7 +786,7 @@ static const float complex point_at_arc_length (const float complex points[],
 static float *
 build_lookup_table (const int distance, const float control1, const float control2)
 {
-  float complex *clookup = dt_alloc_align(64, (distance + 2) * sizeof (float complex));
+  float complex *clookup = dt_alloc_align(64, (distance + 2) * sizeof(float complex));
 
   interpolate_cubic_bezier (I, control1 + I, control2, 1.0, clookup, distance + 2);
 
@@ -1038,25 +1038,12 @@ static void apply_global_distortion_map (struct dt_iop_module_t *module,
           (*row != 0))
         {
           if(ch == 1)
-            *out_sample = dt_interpolation_compute_sample(interpolation,
-                                                          in,
-                                                          x + creal (*row) - roi_in->x,
-                                                          y + cimag (*row) - roi_in->y,
-                                                          roi_in->width,
-                                                          roi_in->height,
-                                                          ch,
-                                                          ch_width);
+            *out_sample = dt_interpolation_compute_sample(interpolation, in, x + creal(*row) - roi_in->x,
+                                                          y + cimag(*row) - roi_in->y, roi_in->width,
+                                                          roi_in->height, ch, ch_width);
           else
-            dt_interpolation_compute_pixel4c (
-              interpolation,
-              in,
-              out_sample,
-              x + creal (*row) - roi_in->x,
-              y + cimag (*row) - roi_in->y,
-              roi_in->width,
-              roi_in->height,
-              ch_width);
-
+            dt_interpolation_compute_pixel4c(interpolation, in, out_sample, x + creal(*row) - roi_in->x,
+                                             y + cimag(*row) - roi_in->y, roi_in->width, roi_in->height, ch_width);
         }
         ++row;
         out_sample += ch;
@@ -1099,7 +1086,7 @@ static float complex *create_global_distortion_map (const cairo_rectangle_int_t 
 {
   // allocate distortion map big enough to contain all paths
   const int mapsize = map_extent->width * map_extent->height;
-  float complex * map = dt_alloc_align(64, mapsize * sizeof (float complex));
+  float complex *map = dt_alloc_align(64, mapsize * sizeof(float complex));
   memset (map, 0, mapsize * sizeof (float complex));
 
   // build map
@@ -1115,7 +1102,7 @@ static float complex *create_global_distortion_map (const cairo_rectangle_int_t 
 
   if (inverted)
   {
-    float complex * const imap = dt_alloc_align (64, mapsize * sizeof (float complex));
+    float complex *const imap = dt_alloc_align(64, mapsize * sizeof(float complex));
     memset (imap, 0, mapsize * sizeof (float complex));
 
     // copy map into imap (inverted map).
@@ -1346,33 +1333,31 @@ void distort_mask(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *p
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) default(none)
 #endif
-  for (int i = 0; i < roi_out->height; i++)
+  for(int i = 0; i < roi_out->height; i++)
   {
-    float *destrow = out + (size_t) i * roi_out->width;
-    const float *srcrow = in + (size_t) (roi_in->width * (i + roi_out->y - roi_in->y) + roi_out->x - roi_in->x);
+    float *destrow = out + (size_t)i * roi_out->width;
+    const float *srcrow = in + (size_t)(roi_in->width * (i + roi_out->y - roi_in->y) + roi_out->x - roi_in->x);
 
-    memcpy (destrow, srcrow, sizeof (float) * roi_out->width);
+    memcpy(destrow, srcrow, sizeof(float) * roi_out->width);
   }
 
   // 2. build the distortion map
 
   cairo_rectangle_int_t map_extent;
-  float complex *map = build_global_distortion_map (self, piece, roi_in, roi_out, &map_extent);
-  if (map == NULL)
-    return;
+  float complex *map = build_global_distortion_map(self, piece, roi_in, roi_out, &map_extent);
+  if(map == NULL) return;
 
   // 3. apply the map
 
-  if (map_extent.width != 0 && map_extent.height != 0)
+  if(map_extent.width != 0 && map_extent.height != 0)
   {
     int ch = piece->colors;
     piece->colors = 1;
-    apply_global_distortion_map (self, piece, in, out, roi_in, roi_out, map, &map_extent);
+    apply_global_distortion_map(self, piece, in, out, roi_in, roi_out, map, &map_extent);
     piece->colors = ch;
   }
 
-  dt_free_align ((void *) map);
-
+  dt_free_align((void *)map);
 }
 
 void process(struct dt_iop_module_t *module, dt_dev_pixelpipe_iop_t *piece, const void *const in,
@@ -3188,7 +3173,7 @@ int button_released (struct dt_iop_module_t *module,
       if (g->last_hit.layer == DT_LIQUIFY_LAYER_CENTERPOINT)
       {
         const int oldsel = !!g->last_hit.elem->header.selected;
-  unselect_all (&g->params);
+        unselect_all(&g->params);
         g->last_hit.elem->header.selected = oldsel ? 0 : g->last_hit.layer;
         handled = 1;
         goto done;
@@ -3221,7 +3206,7 @@ int button_released (struct dt_iop_module_t *module,
         dt_liquify_path_data_t *prev = node_prev (&g->params, e);
         if (prev && e->header.type == DT_LIQUIFY_PATH_CURVE_TO_V1)
         {
-    // add node to curve
+          // add node to curve
           dt_liquify_path_data_t *curve1 = (dt_liquify_path_data_t *) e;
 
           dt_liquify_path_data_t *curve2 = (dt_liquify_path_data_t *)alloc_curve_to (module, 0);
@@ -3251,7 +3236,7 @@ int button_released (struct dt_iop_module_t *module,
         }
         if (prev && e->header.type == DT_LIQUIFY_PATH_LINE_TO_V1)
         {
-    // add node to line
+          // add node to line
           dt_liquify_warp_t *warp1 = &prev->warp;
           dt_liquify_warp_t *warp3 = &e->warp;
           const float t = find_nearest_on_line_t (warp1->point, warp3->point, pt);

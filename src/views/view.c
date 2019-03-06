@@ -846,8 +846,8 @@ int32_t dt_view_get_image_to_act_on()
   const int full_preview_id = darktable.view_manager->proxy.lighttable.get_full_preview_id(
       darktable.view_manager->proxy.lighttable.view);
 
-  const int layout = darktable.view_manager->proxy.lighttable.get_layout(
-      darktable.view_manager->proxy.lighttable.module);
+  const int layout
+      = darktable.view_manager->proxy.lighttable.get_layout(darktable.view_manager->proxy.lighttable.module);
 
   if(zoom == 1 || full_preview_id > 1 || layout == DT_LIGHTTABLE_LAYOUT_EXPOSE)
   {
@@ -1066,7 +1066,8 @@ int dt_view_image_expose(dt_view_image_over_t *image_over, uint32_t imgid, cairo
 // impact from around 400ms -> 55ms per redraw.
 
   // this is a gui thread only thing. no mutex required:
-  const int imgsel = dt_control_get_mouse_over_id(); //  darktable.control->global_settings.lib_image_mouse_over_id;
+  const int imgsel
+      = dt_control_get_mouse_over_id(); //  darktable.control->global_settings.lib_image_mouse_over_id;
 
   // active if zoom>1 or in the proper area
   const gboolean in_metadata_zone = (px < width && py < height / 2) || (zoom > 1);
@@ -1475,21 +1476,21 @@ int dt_view_image_expose(dt_view_image_over_t *image_over, uint32_t imgid, cairo
           for(int k = 0; k < 5; k++)
           {
             dt_view_image_over_t star = DT_VIEW_STAR_1 + k;
-            if(dt_view_process_image_over(star, imgsel == imgid || zoom == 1, cr, img,
-                                          width, height, zoom, px, py, outlinecol, fontcol))
+            if(dt_view_process_image_over(star, imgsel == imgid || zoom == 1, cr, img, width, height, zoom, px, py,
+                                          outlinecol, fontcol))
               *image_over = star;
           }
         }
       }
 
-      if(dt_view_process_image_over(DT_VIEW_REJECT, imgsel == imgid || zoom == 1, cr, img,
-                                    width, height, zoom, px, py, outlinecol, fontcol))
+      if(dt_view_process_image_over(DT_VIEW_REJECT, imgsel == imgid || zoom == 1, cr, img, width, height, zoom, px,
+                                    py, outlinecol, fontcol))
         *image_over = DT_VIEW_REJECT;
 
       if(draw_audio && img && (img->flags & DT_IMAGE_HAS_WAV))
       {
-        if(dt_view_process_image_over(DT_VIEW_AUDIO, imgsel == imgid || zoom == 1, cr, img,
-                                      width, height, zoom, px, py, outlinecol, fontcol))
+        if(dt_view_process_image_over(DT_VIEW_AUDIO, imgsel == imgid || zoom == 1, cr, img, width, height, zoom,
+                                      px, py, outlinecol, fontcol))
           *image_over = DT_VIEW_AUDIO;
       }
 
@@ -1510,16 +1511,16 @@ int dt_view_image_expose(dt_view_image_over_t *image_over, uint32_t imgid, cairo
       // image part of a group?
       if(is_grouped && darktable.gui && darktable.gui->grouping)
       {
-        if(dt_view_process_image_over(DT_VIEW_GROUP, img != NULL, cr, img,
-                                      width, height, zoom, px, py, outlinecol, fontcol))
+        if(dt_view_process_image_over(DT_VIEW_GROUP, img != NULL, cr, img, width, height, zoom, px, py, outlinecol,
+                                      fontcol))
           *image_over = DT_VIEW_GROUP;
       }
 
       // image altered?
       if(draw_history && dt_image_altered(imgid))
       {
-        if(dt_view_process_image_over(DT_VIEW_ALTERED, img != NULL, cr, img,
-                                      width, height, zoom, px, py, outlinecol, fontcol))
+        if(dt_view_process_image_over(DT_VIEW_ALTERED, img != NULL, cr, img, width, height, zoom, px, py,
+                                      outlinecol, fontcol))
           darktable.gui->center_tooltip = 1;
       }
     }
@@ -1602,8 +1603,8 @@ int dt_view_image_expose(dt_view_image_over_t *image_over, uint32_t imgid, cairo
 
         if (zoom != 1)
         {
-          const double x0 = DT_PIXEL_APPLY_DPI(1), y0 = DT_PIXEL_APPLY_DPI(1), rect_width = width - DT_PIXEL_APPLY_DPI(2),
-                radius = DT_PIXEL_APPLY_DPI(5);
+          const double x0 = DT_PIXEL_APPLY_DPI(1), y0 = DT_PIXEL_APPLY_DPI(1),
+                       rect_width = width - DT_PIXEL_APPLY_DPI(2), radius = DT_PIXEL_APPLY_DPI(5);
           double x1, off, off1;
 
           x1 = x0 + rect_width;

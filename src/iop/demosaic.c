@@ -1609,7 +1609,8 @@ static void xtrans_fdc_interpolate(struct dt_iop_module_t *self, float *out, con
   }
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) shared(sgrow, sgcol, allhex, out, rowoffset, coloffset, hybrid_fdc) schedule(dynamic)
+#pragma omp parallel for default(none) shared(sgrow, sgcol, allhex, out, rowoffset, coloffset, hybrid_fdc)        \
+    schedule(dynamic)
 #endif
   // step through TSxTS cells of image, each tile overlapping the
   // prior as interpolation needs a substantial border
@@ -1829,7 +1830,9 @@ static void xtrans_fdc_interpolate(struct dt_iop_module_t *self, float *out, con
           {
             int i = d > 1 || ((d ^ c) & 1)
                             || ((fabsf(rfx[0][1] - rfx[c][1]) + fabsf(rfx[0][1] - rfx[-c][1]))
-                                < 2.f * (fabsf(rfx[0][1] - rfx[h][1]) + fabsf(rfx[0][1] - rfx[-h][1]))) ? c : h;
+                                < 2.f * (fabsf(rfx[0][1] - rfx[h][1]) + fabsf(rfx[0][1] - rfx[-h][1])))
+                        ? c
+                        : h;
             rfx[0][f] = (rfx[i][f] + rfx[-i][f] + 2.f * rfx[0][1] - rfx[i][1] - rfx[-i][1]) / 2.f;
           }
         }
@@ -1866,7 +1869,7 @@ static void xtrans_fdc_interpolate(struct dt_iop_module_t *self, float *out, con
               // to fill in red and blue also for diagonal directions
               for(int d = 0; d < ndir; d += 2, rfx += TS * TS)
                 for(int c = 0; c < 4; c += 2) rfx[0][c] = (redblue[0][c] + redblue[2][c]) * 0.5f;
-           }
+            }
 
       // jump back to the first set of rgb buffers (this is a nop
       // unless on the second pass)
@@ -2088,8 +2091,10 @@ static void xtrans_fdc_interpolate(struct dt_iop_module_t *self, float *out, con
           // in case of hybrid, use the chroma that has the smallest
           // absolute value
           float uv[2];
-          uv[0] = (((ABS(uvf[0]) < ABS(um)) & (ABS(uvf[1]) < (1.02f * ABS(vm)))) ? uvf[0] : um) * hybrid_fdc[0] + uvf[0] * hybrid_fdc[1];
-          uv[1] = (((ABS(uvf[1]) < ABS(vm)) & (ABS(uvf[0]) < (1.02f * ABS(vm)))) ? uvf[1] : vm) * hybrid_fdc[0] + uvf[1] * hybrid_fdc[1];
+          uv[0] = (((ABS(uvf[0]) < ABS(um)) & (ABS(uvf[1]) < (1.02f * ABS(vm)))) ? uvf[0] : um) * hybrid_fdc[0]
+                  + uvf[0] * hybrid_fdc[1];
+          uv[1] = (((ABS(uvf[1]) < ABS(vm)) & (ABS(uvf[0]) < (1.02f * ABS(vm)))) ? uvf[1] : vm) * hybrid_fdc[0]
+                  + uvf[1] * hybrid_fdc[1];
           // combine the luma from Markesteijn with the chroma from above
           rgbpix[0] = y + 1.474600014746f * uv[1];
           rgbpix[1] = y - 0.15498578286403f * uv[0] - 0.571353132557189f * uv[1];
@@ -2271,8 +2276,7 @@ static void vng_interpolate(float *out, const float *const in,
   // if only linear interpolation is requested we can stop it here
   if(only_vng_linear) return;
 
-  char *buffer
-      = (char *)dt_alloc_align(64, (size_t)sizeof(**brow) * width * 3 + sizeof(*ip) * prow * pcol * 320);
+  char *buffer = (char *)dt_alloc_align(64, (size_t)sizeof(**brow) * width * 3 + sizeof(*ip) * prow * pcol * 320);
   if(!buffer)
   {
     fprintf(stderr, "[demosaic] not able to allocate VNG buffer\n");

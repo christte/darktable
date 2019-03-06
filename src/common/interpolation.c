@@ -1107,7 +1107,7 @@ static void dt_interpolation_compute_pixel1c_plain(const struct dt_interpolation
   int iy = (int)y;
 
   if(ix >= (itor->width - 1) && iy >= (itor->width - 1) && ix < (width - itor->width)
-    && iy < (height - itor->width))
+     && iy < (height - itor->width))
   {
     // Inside image boundary case
 
@@ -2064,8 +2064,8 @@ static void dt_interpolation_resample_1c_plain(const struct dt_interpolation *it
   int r;
 
   debug_info("resampling %p (%dx%d@%dx%d scale %f) -> %p (%dx%d@%dx%d scale %f)\n", in, roi_in->width,
-             roi_in->height, roi_in->x, roi_in->y, roi_in->scale, out, roi_out->width, roi_out->height,
-             roi_out->x, roi_out->y, roi_out->scale);
+             roi_in->height, roi_in->x, roi_in->y, roi_in->scale, out, roi_out->width, roi_out->height, roi_out->x,
+             roi_out->y, roi_out->scale);
 
   // Fast code path for 1:1 copy, only cropping area can change
   if(roi_out->scale == 1.f)
@@ -2097,8 +2097,8 @@ static void dt_interpolation_resample_1c_plain(const struct dt_interpolation *it
 #endif
 
   // Prepare resampling plans once and for all
-  r = prepare_resampling_plan(itor, roi_in->width, roi_in->x, roi_out->width, roi_out->x, roi_out->scale,
-                              &hlength, &hkernel, &hindex, NULL);
+  r = prepare_resampling_plan(itor, roi_in->width, roi_in->x, roi_out->width, roi_out->x, roi_out->scale, &hlength,
+                              &hkernel, &hindex, NULL);
   if(r)
   {
     goto exit;
@@ -2192,7 +2192,7 @@ static void dt_interpolation_resample_1c_plain(const struct dt_interpolation *it
   fprintf(stderr, "resampling %p plan:%" PRId64 "us resampling:%" PRId64 "us\n", in, ts_plan, ts_resampling);
 #endif
 
-  exit:
+exit:
   /* Free the resampling plans. It's nasty to optimize allocs like that, but
    * it simplifies the code :-D. The length array is in fact the only memory
    * allocated. */
@@ -2205,8 +2205,7 @@ static void dt_interpolation_resample_1c_plain(const struct dt_interpolation *it
  */
 void dt_interpolation_resample_1c(const struct dt_interpolation *itor, float *out,
                                   const dt_iop_roi_t *const roi_out, const int32_t out_stride,
-                                  const float *const in, const dt_iop_roi_t *const roi_in,
-                                  const int32_t in_stride)
+                                  const float *const in, const dt_iop_roi_t *const roi_in, const int32_t in_stride)
 {
   return dt_interpolation_resample_1c_plain(itor, out, roi_out, out_stride, in, roi_in, in_stride);
 }

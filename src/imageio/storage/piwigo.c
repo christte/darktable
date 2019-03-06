@@ -17,6 +17,7 @@
 */
 
 #include "bauhaus/bauhaus.h"
+#include "common/curl_tools.h"
 #include "common/darktable.h"
 #include "common/image.h"
 #include "common/image_cache.h"
@@ -25,18 +26,17 @@
 #include "common/metadata.h"
 #include "common/pwstorage/pwstorage.h"
 #include "common/tags.h"
-#include "common/curl_tools.h"
 #include "control/conf.h"
 #include "control/control.h"
 #include "dtgtk/button.h"
 #include "gui/gtk.h"
 #include "imageio/storage/imageio_storage_api.h"
 #include <curl/curl.h>
+#include <inttypes.h>
 #include <json-glib/json-glib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <inttypes.h>
 
 DT_MODULE(1)
 
@@ -613,7 +613,7 @@ static void _piwigo_refresh_albums(dt_storage_piwigo_gui_data_t *ui, const gchar
         while(*p++) if(*p == ',') indent++;
       }
 
-      snprintf(data, sizeof(data), "%*c%s (%"PRId64")", indent * 3, ' ', new_album->name, new_album->size);
+      snprintf(data, sizeof(data), "%*c%s (%" PRId64 ")", indent * 3, ' ', new_album->name, new_album->size);
 
       if(to_select && !strcmp(new_album->name, to_select)) index = i + 1;
 
@@ -645,7 +645,7 @@ static const gboolean _piwigo_api_create_new_album(dt_storage_piwigo_params_t *p
   if(p->parent_album_id != 0)
   {
     char pid[100];
-    snprintf(pid, sizeof(pid), "%"PRId64, p->parent_album_id);
+    snprintf(pid, sizeof(pid), "%" PRId64, p->parent_album_id);
     args = _piwigo_query_add_arguments(args, "parent", pid);
   }
   args = _piwigo_query_add_arguments(args, "status", p->privacy==0?"public":"private");
@@ -675,7 +675,7 @@ static const gboolean _piwigo_api_upload_photo(dt_storage_piwigo_params_t *p, gc
   char cat[10];
   char privacy[10];
 
-  snprintf(cat, sizeof(cat), "%"PRId64, p->album_id);
+  snprintf(cat, sizeof(cat), "%" PRId64, p->album_id);
   snprintf(privacy, sizeof(privacy), "%d", p->privacy);
 
   args = _piwigo_query_add_arguments(args, "method", "pwg.images.addSimple");
@@ -764,8 +764,9 @@ void gui_init(dt_imageio_module_storage_t *self)
   label = gtk_label_new(_("server"));
   g_object_set(G_OBJECT(label), "xalign", 0.0, (gchar *)0);
   ui->server_entry = GTK_ENTRY(gtk_entry_new());
-  gtk_widget_set_tooltip_text(GTK_WIDGET(ui->server_entry),
-                              _("the server name\ndefault protocol is https\nspecify http:// if non secure server"));
+  gtk_widget_set_tooltip_text(
+      GTK_WIDGET(ui->server_entry),
+      _("the server name\ndefault protocol is https\nspecify http:// if non secure server"));
   gtk_widget_set_hexpand(GTK_WIDGET(ui->server_entry), TRUE);
   dt_gui_key_accel_block_on_focus_connect(GTK_WIDGET(ui->server_entry));
   gtk_entry_set_text(ui->server_entry, last_account?last_account->server:"piwigo.com");

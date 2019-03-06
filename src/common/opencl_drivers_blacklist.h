@@ -21,8 +21,7 @@
 #include <string.h>
 
 // FIXME: in the future, we may want to also take DRIVER_VERSION into account
-static const gchar *bad_opencl_drivers[] =
-{
+static const gchar *bad_opencl_drivers[] = {
   // clang-format off
 
   "beignet",

@@ -1044,18 +1044,16 @@ static void _iop_color_picker_apply(dt_iop_module_t *self)
   dt_iop_watermark_gui_data_t *g = (dt_iop_watermark_gui_data_t *)self->gui_data;
   dt_iop_watermark_params_t *p = (dt_iop_watermark_params_t *)self->params;
 
-  if(fabsf(p->color[0] - self->picked_color[0]) < 0.0001f
-     && fabsf(p->color[1] - self->picked_color[1]) < 0.0001f
+  if(fabsf(p->color[0] - self->picked_color[0]) < 0.0001f && fabsf(p->color[1] - self->picked_color[1]) < 0.0001f
      && fabsf(p->color[2] - self->picked_color[2]) < 0.0001f)
   {
     // interrupt infinite loops
     return;
   }
 
-  GdkRGBA c = {.red   = self->picked_color[0],
-               .green = self->picked_color[1],
-               .blue  = self->picked_color[2],
-               .alpha = 1.0 };
+  GdkRGBA c = {
+    .red = self->picked_color[0], .green = self->picked_color[1], .blue = self->picked_color[2], .alpha = 1.0
+  };
 
   p->color[0] = self->picked_color[0];
   p->color[1] = self->picked_color[1];
@@ -1322,9 +1320,17 @@ void init(dt_iop_module_t *module)
   module->default_enabled = 0;
   module->priority = 971; // module order created by iop_dependencies.py, do not edit!
   module->gui_data = NULL;
-  dt_iop_watermark_params_t tmp = {
-    100.0, 100.0, 0.0, 0.0, 4, 0.0, DT_SCALE_IMAGE, { "darktable.svg" }, { "" }, {0.0, 0.0, 0.0}, {"DejaVu Sans 10"}
-  }; // opacity,scale,xoffs,yoffs,alignment
+  dt_iop_watermark_params_t tmp = { 100.0,
+                                    100.0,
+                                    0.0,
+                                    0.0,
+                                    4,
+                                    0.0,
+                                    DT_SCALE_IMAGE,
+                                    { "darktable.svg" },
+                                    { "" },
+                                    { 0.0, 0.0, 0.0 },
+                                    { "DejaVu Sans 10" } }; // opacity,scale,xoffs,yoffs,alignment
   memcpy(module->params, &tmp, sizeof(dt_iop_watermark_params_t));
   memcpy(module->default_params, &tmp, sizeof(dt_iop_watermark_params_t));
 }
@@ -1381,10 +1387,12 @@ void gui_init(struct dt_iop_module_t *self)
   gtk_widget_set_size_request(GTK_WIDGET(g->colorpick), DT_PIXEL_APPLY_DPI(24), DT_PIXEL_APPLY_DPI(24));
   gtk_color_button_set_title(GTK_COLOR_BUTTON(g->colorpick), _("select watermark color"));
 
-  g->color_picker_button = GTK_TOGGLE_BUTTON(dtgtk_togglebutton_new(dtgtk_cairo_paint_colorpicker, CPF_STYLE_FLAT, NULL));
+  g->color_picker_button
+      = GTK_TOGGLE_BUTTON(dtgtk_togglebutton_new(dtgtk_cairo_paint_colorpicker, CPF_STYLE_FLAT, NULL));
   gtk_widget_set_tooltip_text(GTK_WIDGET(g->color_picker_button), _("pick color from image"));
   gtk_widget_set_size_request(GTK_WIDGET(g->color_picker_button), DT_PIXEL_APPLY_DPI(24), DT_PIXEL_APPLY_DPI(24));
-  g_signal_connect(G_OBJECT(g->color_picker_button), "toggled", G_CALLBACK(dt_iop_color_picker_callback), &g->color_picker);
+  g_signal_connect(G_OBJECT(g->color_picker_button), "toggled", G_CALLBACK(dt_iop_color_picker_callback),
+                   &g->color_picker);
 
   gtk_box_pack_start(GTK_BOX(box), g->colorpick, TRUE, TRUE, 0);
   gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(g->color_picker_button), FALSE, TRUE, 0);
@@ -1498,11 +1506,8 @@ void gui_init(struct dt_iop_module_t *self)
   g_signal_connect(G_OBJECT(g->colorpick), "color-set", G_CALLBACK(colorpick_color_set), self);
   g_signal_connect(G_OBJECT(g->fontsel), "font-set", G_CALLBACK(fontsel_callback), self);
 
-  dt_iop_init_single_picker(&g->color_picker,
-                     self,
-                     GTK_WIDGET(g->color_picker_button),
-                     DT_COLOR_PICKER_POINT,
-                     _iop_color_picker_apply);
+  dt_iop_init_single_picker(&g->color_picker, self, GTK_WIDGET(g->color_picker_button), DT_COLOR_PICKER_POINT,
+                            _iop_color_picker_apply);
 }
 
 void gui_cleanup(struct dt_iop_module_t *self)

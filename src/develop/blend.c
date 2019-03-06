@@ -17,9 +17,9 @@
     along with darktable.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "blend.h"
+#include "common/colorspaces_inline_conversions.h"
 #include "common/gaussian.h"
 #include "common/guided_filter.h"
-#include "common/colorspaces_inline_conversions.h"
 #include "common/math.h"
 #include "common/opencl.h"
 #include "control/control.h"
@@ -2798,11 +2798,11 @@ void dt_develop_blend_process(struct dt_iop_module_t *self, struct dt_dev_pixelp
   const dt_dev_pixelpipe_display_mask_t mask_display = piece->pipe->mask_display;
 
   // does user want us to display a specific channel?
-  const dt_dev_pixelpipe_display_mask_t request_mask_display =
-    (self->dev->gui_attached && (self == self->dev->gui_module) && (piece->pipe == self->dev->pipe)
-     && (mask_mode & DEVELOP_MASK_MASK_CONDITIONAL))
-        ? self->request_mask_display
-        : DT_DEV_PIXELPIPE_DISPLAY_NONE;
+  const dt_dev_pixelpipe_display_mask_t request_mask_display
+      = (self->dev->gui_attached && (self == self->dev->gui_module) && (piece->pipe == self->dev->pipe)
+         && (mask_mode & DEVELOP_MASK_MASK_CONDITIONAL))
+            ? self->request_mask_display
+            : DT_DEV_PIXELPIPE_DISPLAY_NONE;
 
   // check if we only should blend lightness channel. will affect only Lab space
   const int blendflag = self->flags() & IOP_FLAGS_BLEND_ONLY_LIGHTNESS;
@@ -2843,20 +2843,20 @@ void dt_develop_blend_process(struct dt_iop_module_t *self, struct dt_dev_pixelp
   {
     /* use a raster mask from another module earlier in the pipe */
     gboolean free_mask = FALSE; // if no transformations were applied we get the cached original back
-    float *raster_mask = dt_dev_get_raster_mask(piece->pipe, self->raster_mask.sink.source, self->raster_mask.sink.id,
-                                                self, &free_mask);
+    float *raster_mask = dt_dev_get_raster_mask(piece->pipe, self->raster_mask.sink.source,
+                                                self->raster_mask.sink.id, self, &free_mask);
 
     if(raster_mask)
     {
       // invert if required
       if(d->raster_mask_invert)
 #ifdef _OPENMP
-  #pragma omp parallel for default(none) shared(raster_mask)
+#pragma omp parallel for default(none) shared(raster_mask)
 #endif
         for(size_t i = 0; i < buffsize; i++) mask[i] = (1.0 - raster_mask[i]) * opacity;
       else
 #ifdef _OPENMP
-  #pragma omp parallel for default(none) shared(raster_mask)
+#pragma omp parallel for default(none) shared(raster_mask)
 #endif
         for(size_t i = 0; i < buffsize; i++) mask[i] = raster_mask[i] * opacity;
       if(free_mask) dt_free_align(raster_mask);
@@ -2866,7 +2866,7 @@ void dt_develop_blend_process(struct dt_iop_module_t *self, struct dt_dev_pixelp
       // fallback for when the raster mask couldn't be applied
       const float value = d->raster_mask_invert ? 0.0 : 1.0;
 #ifdef _OPENMP
-  #pragma omp parallel for default(none)
+#pragma omp parallel for default(none)
 #endif
       for(size_t i = 0; i < buffsize; i++) mask[i] = value;
     }
@@ -3190,20 +3190,20 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
   {
     /* use a raster mask from another module earlier in the pipe */
     gboolean free_mask = FALSE; // if no transformations were applied we get the cached original back
-    float *raster_mask = dt_dev_get_raster_mask(piece->pipe, self->raster_mask.sink.source, self->raster_mask.sink.id,
-                                                self, &free_mask);
+    float *raster_mask = dt_dev_get_raster_mask(piece->pipe, self->raster_mask.sink.source,
+                                                self->raster_mask.sink.id, self, &free_mask);
 
     if(raster_mask)
     {
       // invert if required
       if(d->raster_mask_invert)
 #ifdef _OPENMP
-  #pragma omp parallel for default(none) shared(raster_mask)
+#pragma omp parallel for default(none) shared(raster_mask)
 #endif
         for(size_t i = 0; i < buffsize; i++) mask[i] = (1.0 - raster_mask[i]) * opacity;
       else
 #ifdef _OPENMP
-  #pragma omp parallel for default(none) shared(raster_mask)
+#pragma omp parallel for default(none) shared(raster_mask)
 #endif
         for(size_t i = 0; i < buffsize; i++) mask[i] = raster_mask[i] * opacity;
       if(free_mask) dt_free_align(raster_mask);
@@ -3213,7 +3213,7 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
       // fallback for when the raster mask couldn't be applied
       const float value = d->raster_mask_invert ? 0.0 : 1.0;
 #ifdef _OPENMP
-  #pragma omp parallel for default(none)
+#pragma omp parallel for default(none)
 #endif
       for(size_t i = 0; i < buffsize; i++) mask[i] = value;
     }
@@ -3236,7 +3236,7 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
       {
         // if we have a mask and this flag is set -> invert the mask
 #ifdef _OPENMP
-  #pragma omp parallel for default(none)
+#pragma omp parallel for default(none)
 #endif
         for(size_t i = 0; i < buffsize; i++) mask[i] = 1.0f - mask[i];
       }
@@ -3247,7 +3247,7 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
       // we fill the buffer with 1.0f or 0.0f depending on mask_combine
       const float fill = (d->mask_combine & DEVELOP_COMBINE_MASKS_POS) ? 0.0f : 1.0f;
 #ifdef _OPENMP
-  #pragma omp parallel for default(none)
+#pragma omp parallel for default(none)
 #endif
       for(size_t i = 0; i < buffsize; i++) mask[i] = fill;
     }
@@ -3256,7 +3256,7 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
       // we fill the buffer with 1.0f or 0.0f depending on mask_combine
       const float fill = (d->mask_combine & DEVELOP_COMBINE_INCL) ? 0.0f : 1.0f;
 #ifdef _OPENMP
-  #pragma omp parallel for default(none)
+#pragma omp parallel for default(none)
 #endif
       for(size_t i = 0; i < buffsize; i++) mask[i] = fill;
     }
@@ -3441,7 +3441,7 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
       if(err != CL_SUCCESS) goto error;
     }
     g_hash_table_replace(piece->raster_masks, GINT_TO_POINTER(0), _mask);
-    }
+  }
   else
   {
     g_hash_table_remove(piece->raster_masks, GINT_TO_POINTER(0));

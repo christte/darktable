@@ -1021,7 +1021,7 @@ void cleanup_pipe(struct dt_iop_module_t *self, dt_dev_pixelpipe_t *pipe, dt_dev
   piece->data = NULL;
 }
 
-#define GAUSS(x, sigma) expf( -(1.0f - x) * (1.0f - x) / (sigma * sigma)) / (2.0 * sigma * powf(M_PI, 0.5f))
+#define GAUSS(x, sigma) expf(-(1.0f - x) * (1.0f - x) / (sigma * sigma)) / (2.0 * sigma * powf(M_PI, 0.5f))
 
 void init_presets(dt_iop_module_so_t *self)
 {

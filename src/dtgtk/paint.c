@@ -522,7 +522,7 @@ void dtgtk_cairo_paint_masks_brush_and_inverse(cairo_t *cr, gint x, gint y, gint
   //  cairo_fill_preserve(cr);
   cairo_stroke(cr);
 
-  //cairo_translate(cr, x + (w / 2.0) - (s / 2.0), y + (h / 2.0) - (s / 2.0));
+  // cairo_translate(cr, x + (w / 2.0) - (s / 2.0), y + (h / 2.0) - (s / 2.0));
   cairo_set_line_width(cr, 0.15);
   cairo_arc(cr, 0.5, 0.5, 0.46, 0, 2.0 * M_PI);
   cairo_stroke(cr);

@@ -865,7 +865,8 @@ void distort_mask(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *p
   dt_pthread_mutex_lock(&darktable.plugin_threadsafe);
   lfModifier *modifier = lf_modifier_new(d->lens, d->crop, orig_w, orig_h);
 
-  int modify_flags = d->modify_flags & (/*LF_MODIFY_TCA |*/ LF_MODIFY_DISTORTION | LF_MODIFY_GEOMETRY | LF_MODIFY_SCALE);
+  int modify_flags
+      = d->modify_flags & (/*LF_MODIFY_TCA |*/ LF_MODIFY_DISTORTION | LF_MODIFY_GEOMETRY | LF_MODIFY_SCALE);
   const int modflags = lf_modifier_initialize(modifier, d->lens, LF_PF_F32, d->focal, d->aperture, d->distance,
                                               d->scale, d->target_geom, modify_flags, d->inverse);
   dt_pthread_mutex_unlock(&darktable.plugin_threadsafe);

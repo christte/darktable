@@ -15,11 +15,11 @@
     You should have received a copy of the GNU General Public License
     along with darktable.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include "common/ratings.h"
 #include "common/collection.h"
 #include "common/darktable.h"
 #include "common/debug.h"
 #include "common/image_cache.h"
-#include "common/ratings.h"
 #include "common/undo.h"
 #include "control/conf.h"
 #include "control/control.h"
@@ -64,8 +64,8 @@ static void _ratings_apply_to_image(int imgid, int rating, gboolean undo)
       ratings->imgid = imgid;
       ratings->before_rating = 0x7 & image->flags;
       ratings->after_rating = rating;
-      dt_undo_record(darktable.undo, NULL, DT_UNDO_RATINGS, (dt_undo_data_t *)ratings,
-                     _pop_undo, _ratings_undo_data_free);
+      dt_undo_record(darktable.undo, NULL, DT_UNDO_RATINGS, (dt_undo_data_t *)ratings, _pop_undo,
+                     _ratings_undo_data_free);
     }
 
     image->flags = (image->flags & ~0x7) | (0x7 & rating);

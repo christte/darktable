@@ -65,27 +65,19 @@ typedef struct dt_iop_color_picker_t
 } dt_iop_color_picker_t;
 
 /* init color picker, this must be called when all picker widgets are created */
-void dt_iop_init_picker(dt_iop_color_picker_t *picker,
-                  dt_iop_module_t *module,
-                  dt_iop_color_picker_kind_t kind,
-                  int (*get_set)(dt_iop_module_t *self, GtkWidget *button),
-                  void (*apply)(dt_iop_module_t *self),
-                  void (*update)(dt_iop_module_t *self));
+void dt_iop_init_picker(dt_iop_color_picker_t *picker, dt_iop_module_t *module, dt_iop_color_picker_kind_t kind,
+                        int (*get_set)(dt_iop_module_t *self, GtkWidget *button),
+                        void (*apply)(dt_iop_module_t *self), void (*update)(dt_iop_module_t *self));
 
 /* init for a single color picker in iop, this must be called when all picker widget are created */
-void dt_iop_init_single_picker(dt_iop_color_picker_t *picker,
-                         dt_iop_module_t *module,
-                         GtkWidget *colorpick,
-                         dt_iop_color_picker_kind_t kind,
-                         void (*apply)(dt_iop_module_t *self));
+void dt_iop_init_single_picker(dt_iop_color_picker_t *picker, dt_iop_module_t *module, GtkWidget *colorpick,
+                               dt_iop_color_picker_kind_t kind, void (*apply)(dt_iop_module_t *self));
 
 /* same as previous but for the blend module */
-void dt_iop_init_blend_picker(dt_iop_color_picker_t *picker,
-                  dt_iop_module_t *module,
-                  dt_iop_color_picker_kind_t kind,
-                  int (*get_set)(dt_iop_module_t *self, GtkWidget *button),
-                  void (*apply)(dt_iop_module_t *self),
-                  void (*update)(dt_iop_module_t *self));
+void dt_iop_init_blend_picker(dt_iop_color_picker_t *picker, dt_iop_module_t *module,
+                              dt_iop_color_picker_kind_t kind,
+                              int (*get_set)(dt_iop_module_t *self, GtkWidget *button),
+                              void (*apply)(dt_iop_module_t *self), void (*update)(dt_iop_module_t *self));
 
 /* the color picker callback which must be used for every picker, as an example:
 
@@ -104,7 +96,8 @@ void dt_iop_color_picker_callback(GtkWidget *button, dt_iop_color_picker_t *self
       g_signal_connect(G_OBJECT(g->color_picker_button), "button-press-event",
                        G_CALLBACK(dt_iop_color_picker_callback_button_press), &g->color_picker);
 */
-gboolean dt_iop_color_picker_callback_button_press(GtkWidget *button, GdkEventButton *e, dt_iop_color_picker_t *self);
+gboolean dt_iop_color_picker_callback_button_press(GtkWidget *button, GdkEventButton *e,
+                                                   dt_iop_color_picker_t *self);
 
 /* called by pixelpipe when color has been updated */
 void dt_iop_color_picker_apply_module(dt_iop_module_t *module);

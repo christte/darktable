@@ -125,11 +125,10 @@ static gboolean _get_node_for_name(GtkTreeModel *model, gboolean root, GtkTreeIt
     {
       return TRUE;
     }
-  }
-  while(gtk_tree_model_iter_next(model, iter));
+  } while(gtk_tree_model_iter_next(model, iter));
 
   // not found, create it under parent
-  gtk_tree_store_append(GTK_TREE_STORE(model), iter, root?NULL:&parent);
+  gtk_tree_store_append(GTK_TREE_STORE(model), iter, root ? NULL : &parent);
 
   return FALSE;
 }
@@ -169,19 +168,19 @@ static void _gui_styles_update_view(dt_lib_styles_t *d)
       while(split[k])
       {
         const gchar *s = split[k];
-        const gboolean node_found = _get_node_for_name(model, k==0, &iter, s);
+        const gboolean node_found = _get_node_for_name(model, k == 0, &iter, s);
 
         if(!node_found)
         {
-          if(split[k+1])
+          if(split[k + 1])
           {
             gtk_tree_store_set(GTK_TREE_STORE(model), &iter, DT_STYLES_COL_NAME, s, -1);
           }
           else
           {
             // a leaf
-            gtk_tree_store_set(GTK_TREE_STORE(model), &iter,
-                               DT_STYLES_COL_NAME, s, DT_STYLES_COL_TOOLTIP, tooltip, DT_STYLES_COL_FULLNAME, style->name, -1);
+            gtk_tree_store_set(GTK_TREE_STORE(model), &iter, DT_STYLES_COL_NAME, s, DT_STYLES_COL_TOOLTIP, tooltip,
+                               DT_STYLES_COL_FULLNAME, style->name, -1);
           }
         }
         k++;
@@ -269,9 +268,9 @@ static void delete_clicked(GtkWidget *w, gpointer user_data)
     {
       const GtkWidget *win = dt_ui_main_window(darktable.gui->ui);
 
-      GtkWidget *dialog = gtk_message_dialog_new
-      (GTK_WINDOW(win), GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO,
-       _("do you really want to delete style '%s'?"), name);
+      GtkWidget *dialog
+          = gtk_message_dialog_new(GTK_WINDOW(win), GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION,
+                                   GTK_BUTTONS_YES_NO, _("do you really want to delete style '%s'?"), name);
 #ifdef GDK_WINDOWING_QUARTZ
       dt_osx_disallow_fullscreen(dialog);
 #endif

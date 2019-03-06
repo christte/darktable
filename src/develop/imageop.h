@@ -321,8 +321,10 @@ typedef struct dt_iop_module_t
   struct dt_develop_blend_params_t *blend_params, *default_blendop_params;
   /** holder for blending ui control */
   gpointer blend_data;
-  struct {
-    struct {
+  struct
+  {
+    struct
+    {
       /** if this module generates a mask, is it used later on? needed to decide if the mask should be stored.
           maps dt_iop_module_t* -> id
       */
@@ -330,7 +332,8 @@ typedef struct dt_iop_module_t
       /** the masks this module has to offer. maps id -> name */
       GHashTable *masks;
     } source;
-    struct {
+    struct
+    {
       /** the module that provides the raster mask (if any). keep in sync with blend_params! */
       struct dt_iop_module_t *source;
       int id;
